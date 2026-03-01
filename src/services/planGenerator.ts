@@ -42,6 +42,10 @@ export async function generateBlockOutline(pid: string): Promise<void> {
 
   const blockData = parseJsonFromResponse(response) as GeneratedBlock;
 
+  if (!blockData?.phases || !Array.isArray(blockData.phases)) {
+    throw new Error('Invalid block outline format from AI response');
+  }
+
   const blocks = blockData.phases.map((phase) => ({
     start_date: phase.startDate,
     end_date: phase.endDate,
@@ -87,6 +91,10 @@ export async function generateWeekPlan(
   );
 
   const planData = parseJsonFromResponse(response) as GeneratedPlan;
+
+  if (!planData?.workouts || !Array.isArray(planData.workouts)) {
+    throw new Error('Invalid week plan format from AI response');
+  }
 
   const planId = saveWeekPlan(
     pid,

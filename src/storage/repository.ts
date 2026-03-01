@@ -263,12 +263,18 @@ export function getRecentWorkouts(pid: string, days: number = 14): Workout[] {
 export function updateWorkoutDetails(
   pid: string,
   id: number,
-  updates: Partial<Pick<Workout, 'discipline' | 'title' | 'duration_minutes' | 'details' | 'time_slot'>>
+  updates: Record<string, string | number>
 ): void {
   const all = getAllWorkouts(pid);
   const idx = all.findIndex((w) => w.id === id);
   if (idx < 0) return;
-  Object.assign(all[idx], updates);
+
+  const allowed = ['discipline', 'title', 'duration_minutes', 'details', 'time_slot'] as const;
+  for (const key of allowed) {
+    if (key in updates) {
+      (all[idx] as unknown as Record<string, unknown>)[key] = updates[key];
+    }
+  }
   setArray(pid, 'WORKOUTS', all);
 }
 

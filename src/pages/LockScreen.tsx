@@ -19,8 +19,8 @@ export default function LockScreen() {
   async function handleSetPassword() {
     setError('');
 
-    if (password.length < 4) {
-      setError('Password must be at least 4 characters.');
+    if (password.length < 6) {
+      setError('Password must be at least 6 characters.');
       return;
     }
 

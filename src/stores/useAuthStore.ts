@@ -53,7 +53,14 @@ export const useAuthStore = create<AuthStore>((set) => ({
     if (!storedHash) return false;
 
     const inputHash = await hashPassword(password);
-    if (inputHash !== storedHash) return false;
+
+    // Constant-time comparison to prevent timing attacks
+    if (inputHash.length !== storedHash.length) return false;
+    let mismatch = 0;
+    for (let i = 0; i < inputHash.length; i++) {
+      mismatch |= inputHash.charCodeAt(i) ^ storedHash.charCodeAt(i);
+    }
+    if (mismatch !== 0) return false;
 
     const token = generateSessionToken();
     sessionStorage.setItem(STORAGE_KEYS.SESSION_TOKEN, token);
