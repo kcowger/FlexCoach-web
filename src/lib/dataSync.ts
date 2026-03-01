@@ -348,10 +348,21 @@ function persistChat(pid: string): void {
   setDoc(chatRef(c.uid, pid), { messages: c.chat[pid] || [] }).catch((e) => handleSyncError('chat', e));
 }
 
+// Strip undefined values from an object — Firestore rejects them
+function stripUndefined<T extends Record<string, unknown>>(obj: T): T {
+  const clean = {} as Record<string, unknown>;
+  for (const key in obj) {
+    if (obj[key] !== undefined) clean[key] = obj[key];
+  }
+  return clean as T;
+}
+
 function persistMood(pid: string): void {
   const c = cache;
   if (!c) return;
-  setDoc(moodRef(c.uid, pid), { entries: c.mood[pid] || [] }).catch((e) => handleSyncError('mood', e));
+  const raw = c.mood[pid] || [];
+  const entries = raw.map((e) => stripUndefined(e as unknown as Record<string, unknown>));
+  setDoc(moodRef(c.uid, pid), { entries }).catch((e) => handleSyncError('mood', e));
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────
