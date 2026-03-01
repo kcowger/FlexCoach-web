@@ -84,15 +84,15 @@ export const useMoodStore = create<MoodStore>((set) => ({
       mood,
       energy,
       sleep_quality: sleepQuality,
-      sleep_hours: extra?.sleepHours,
-      stress: extra?.stress,
-      resting_hr: extra?.restingHr,
-      weight: extra?.weight,
-      weight_unit: extra?.weightUnit,
       context,
-      workout_id: workoutId,
       created_at: new Date().toISOString(),
     };
+    if (extra?.sleepHours != null) directEntry.sleep_hours = extra.sleepHours;
+    if (extra?.stress != null) directEntry.stress = extra.stress;
+    if (extra?.restingHr != null) directEntry.resting_hr = extra.restingHr;
+    if (extra?.weight != null) directEntry.weight = extra.weight;
+    if (extra?.weightUnit != null) directEntry.weight_unit = extra.weightUnit;
+    if (workoutId != null) directEntry.workout_id = workoutId;
 
     // Try reading back from repo for accuracy, fallback to direct entry
     let savedMood: MoodEntry | null = directEntry;

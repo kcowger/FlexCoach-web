@@ -331,21 +331,23 @@ export function saveMoodEntry(
 ): number {
   const entries = getMoodData(pid);
   const id = nextId();
-  entries.push({
+  const entry: MoodEntry = {
     id,
     date: getTodayISO(),
     mood,
     energy,
     sleep_quality: sleepQuality,
-    sleep_hours: extra?.sleepHours,
-    stress: extra?.stress,
-    resting_hr: extra?.restingHr,
-    weight: extra?.weight,
-    weight_unit: extra?.weightUnit,
     context,
-    workout_id: workoutId,
     created_at: new Date().toISOString(),
-  });
+  };
+  // Only set optional fields if defined — Firestore rejects undefined values
+  if (extra?.sleepHours != null) entry.sleep_hours = extra.sleepHours;
+  if (extra?.stress != null) entry.stress = extra.stress;
+  if (extra?.restingHr != null) entry.resting_hr = extra.restingHr;
+  if (extra?.weight != null) entry.weight = extra.weight;
+  if (extra?.weightUnit != null) entry.weight_unit = extra.weightUnit;
+  if (workoutId != null) entry.workout_id = workoutId;
+  entries.push(entry);
   setMoodData(pid, entries);
   return id;
 }
