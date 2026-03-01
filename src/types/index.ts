@@ -23,6 +23,11 @@ export type EventPriority = 'A' | 'B' | 'C';
 
 export type ExperienceLevel = 'beginner' | 'returning' | 'experienced';
 
+export type Sex = 'male' | 'female' | 'other' | 'prefer_not_to_say';
+export type WeightUnit = 'lbs' | 'kg';
+export type HeightUnit = 'imperial' | 'metric';
+export type MoodContext = 'daily' | 'pre_workout';
+
 export interface UserProfile {
   id: number;
   name: string;
@@ -36,6 +41,12 @@ export interface UserProfile {
   onboarding_complete: number;
   created_at: string;
   updated_at: string;
+  age?: number;
+  weight?: number;
+  weight_unit?: WeightUnit;
+  height_cm?: number;
+  height_unit?: HeightUnit;
+  sex?: Sex;
 }
 
 export interface SchedulePreference {
@@ -99,6 +110,17 @@ export interface ChatMessage {
   content: string;
   timestamp: string;
   context_snapshot: string;
+}
+
+export interface MoodEntry {
+  id: number;
+  date: string;
+  mood: number;
+  energy: number;
+  sleep_quality: number;
+  context: MoodContext;
+  workout_id?: number;
+  created_at: string;
 }
 
 // Parsed types (from JSON fields)

@@ -8,6 +8,7 @@ import type {
   WorkoutPlan,
   Workout,
   ChatMessage,
+  MoodEntry,
 } from '@/types';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -37,6 +38,7 @@ interface Cache {
   profiles: Record<string, ProfileDoc>;
   workouts: Record<string, Workout[]>;
   chat: Record<string, ChatMessage[]>;
+  mood: Record<string, MoodEntry[]>;
 }
 
 // ── Cache ─────────────────────────────────────────────────────────────
@@ -70,6 +72,10 @@ function chatRef(uid: string, pid: string) {
   return doc(db, 'users', uid, 'chat', pid);
 }
 
+function moodRef(uid: string, pid: string) {
+  return doc(db, 'users', uid, 'mood', pid);
+}
+
 // ── Load all data on login ───────────────────────────────────────────
 
 export async function loadUserData(uid: string): Promise<void> {
@@ -81,12 +87,14 @@ export async function loadUserData(uid: string): Promise<void> {
   const profiles: Record<string, ProfileDoc> = {};
   const workouts: Record<string, Workout[]> = {};
   const chat: Record<string, ChatMessage[]> = {};
+  const mood: Record<string, MoodEntry[]> = {};
 
   for (const p of meta.profiles) {
-    const [profSnap, workSnap, chatSnap] = await Promise.all([
+    const [profSnap, workSnap, chatSnap, moodSnap] = await Promise.all([
       getDoc(profileRef(uid, p.id)),
       getDoc(workoutsRef(uid, p.id)),
       getDoc(chatRef(uid, p.id)),
+      getDoc(moodRef(uid, p.id)),
     ]);
 
     profiles[p.id] = profSnap.exists()
@@ -106,9 +114,13 @@ export async function loadUserData(uid: string): Promise<void> {
     chat[p.id] = chatSnap.exists()
       ? ((chatSnap.data() as { messages: ChatMessage[] }).messages || [])
       : [];
+
+    mood[p.id] = moodSnap.exists()
+      ? ((moodSnap.data() as { entries: MoodEntry[] }).entries || [])
+      : [];
   }
 
-  cache = { uid, meta, profiles, workouts, chat };
+  cache = { uid, meta, profiles, workouts, chat, mood };
 }
 
 export function clearCache(): void {
@@ -144,11 +156,13 @@ export function createProfile(name: string): string {
   };
   c.workouts[id] = [];
   c.chat[id] = [];
+  c.mood[id] = [];
 
   persistMeta();
   persistProfile(id);
   persistWorkouts(id);
   persistChat(id);
+  persistMood(id);
   return id;
 }
 
@@ -158,6 +172,7 @@ export function deleteProfile(id: string): void {
   delete c.profiles[id];
   delete c.workouts[id];
   delete c.chat[id];
+  delete c.mood[id];
 
   persistMeta();
   // Note: Firestore docs for this profile will be orphaned but harmless
@@ -271,6 +286,18 @@ export function setChatData(pid: string, messages: ChatMessage[]): void {
   persistChat(pid);
 }
 
+// ── Mood ──────────────────────────────────────────────────────────────
+
+export function getMoodData(pid: string): MoodEntry[] {
+  return requireCache().mood[pid] || [];
+}
+
+export function setMoodData(pid: string, entries: MoodEntry[]): void {
+  const c = requireCache();
+  c.mood[pid] = entries;
+  persistMood(pid);
+}
+
 // ── Sync error tracking ──────────────────────────────────────────────
 
 let lastSyncError: string | null = null;
@@ -313,6 +340,12 @@ function persistChat(pid: string): void {
   const c = cache;
   if (!c) return;
   setDoc(chatRef(c.uid, pid), { messages: c.chat[pid] || [] }).catch((e) => handleSyncError('chat', e));
+}
+
+function persistMood(pid: string): void {
+  const c = cache;
+  if (!c) return;
+  setDoc(moodRef(c.uid, pid), { entries: c.mood[pid] || [] }).catch((e) => handleSyncError('mood', e));
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────

@@ -8,6 +8,7 @@ import LockScreen from '@/pages/LockScreen';
 import ProfileSelect from '@/pages/ProfileSelect';
 import Welcome from '@/pages/onboarding/Welcome';
 import ApiKey from '@/pages/onboarding/ApiKey';
+import Basics from '@/pages/onboarding/Basics';
 import Goals from '@/pages/onboarding/Goals';
 import Equipment from '@/pages/onboarding/Equipment';
 import Injuries from '@/pages/onboarding/Injuries';
@@ -55,6 +56,7 @@ export default function App() {
           {/* Onboarding routes */}
           <Route path="/onboarding/welcome" element={<Welcome />} />
           <Route path="/onboarding/apikey" element={<ApiKey />} />
+          <Route path="/onboarding/basics" element={<Basics />} />
           <Route path="/onboarding/goals" element={<Goals />} />
           <Route path="/onboarding/equipment" element={<Equipment />} />
           <Route path="/onboarding/injuries" element={<Injuries />} />

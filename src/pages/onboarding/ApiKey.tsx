@@ -32,7 +32,7 @@ export default function ApiKey() {
         [{ role: 'user', content: 'Say "ok" and nothing else.' }],
         16
       );
-      navigate('/onboarding/goals');
+      navigate('/onboarding/basics');
     } catch (err) {
       // Remove invalid key
       savApiKey('');
@@ -62,7 +62,7 @@ export default function ApiKey() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <p className="text-sm text-muted text-center flex-1 pr-10">Step 2 of 6</p>
+        <p className="text-sm text-muted text-center flex-1 pr-10">Step 2 of 7</p>
       </div>
 
       {/* Content */}

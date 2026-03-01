@@ -21,7 +21,8 @@ interface ProfileStore {
   loadProfile: (pid: string) => void;
   updateProfile: (pid: string, updates: Partial<Pick<UserProfile,
     'name' | 'equipment' | 'injuries' | 'goals' | 'experience_level' |
-    'weekly_hours_available' | 'travel_mode' | 'api_key_configured' | 'onboarding_complete'
+    'weekly_hours_available' | 'travel_mode' | 'api_key_configured' | 'onboarding_complete' |
+    'age' | 'weight' | 'weight_unit' | 'height_cm' | 'height_unit' | 'sex'
   >>) => void;
   loadSchedule: (pid: string) => void;
   loadEvents: (pid: string) => void;

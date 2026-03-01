@@ -9,6 +9,7 @@ import {
   getTodayWorkouts,
   getWeekWorkouts,
   getRecentWorkouts,
+  getRecentMoodEntries,
   updateWorkoutDetails,
   updateProfile,
 } from '@/storage/repository';
@@ -50,13 +51,15 @@ export const useChatStore = create<ChatStore>((set) => ({
       const todayWorkouts = getTodayWorkouts(pid, getTodayISO());
       const weekWorkouts = getWeekWorkouts(pid, getWeekStartISO());
       const recentWorkouts = getRecentWorkouts(pid);
+      const recentMood = getRecentMoodEntries(pid, 14);
 
       const systemPrompt = buildChatSystemPrompt(
         profile,
         todayWorkouts,
         weekWorkouts,
         events,
-        recentWorkouts
+        recentWorkouts,
+        recentMood
       );
 
       const apiMessages = messages.slice(-20).map((m) => ({

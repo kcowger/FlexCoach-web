@@ -9,7 +9,7 @@ export default function Welcome() {
   function handleGetStarted() {
     const apiKey = getApiKey();
     if (apiKey) {
-      navigate('/onboarding/goals');
+      navigate('/onboarding/basics');
     } else {
       navigate('/onboarding/apikey');
     }
@@ -19,7 +19,7 @@ export default function Welcome() {
     <div className="bg-background text-text min-h-screen flex flex-col">
       {/* Step indicator */}
       <div className="px-4 pt-6">
-        <p className="text-sm text-muted text-center">Step 1 of 6</p>
+        <p className="text-sm text-muted text-center">Step 1 of 7</p>
       </div>
 
       {/* Content */}

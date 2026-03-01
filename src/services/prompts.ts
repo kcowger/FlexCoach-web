@@ -7,6 +7,7 @@ import type {
   Equipment,
   Injury,
   TimeSlot,
+  MoodEntry,
 } from '@/types';
 import { DAY_LABELS_FULL } from '@/constants/defaults';
 
@@ -20,6 +21,46 @@ function formatEquipment(equipmentJson: string): string {
   } catch {
     return 'Not specified';
   }
+}
+
+function formatBasics(profile: UserProfile): string {
+  const parts: string[] = [];
+  if (profile.age) parts.push(`Age: ${profile.age}`);
+  if (profile.sex && profile.sex !== 'prefer_not_to_say') {
+    parts.push(`Sex: ${profile.sex}`);
+  }
+  if (profile.weight && profile.weight_unit) {
+    parts.push(`Weight: ${profile.weight} ${profile.weight_unit}`);
+  }
+  if (profile.height_cm) {
+    if (profile.height_unit === 'imperial') {
+      const totalInches = Math.round(profile.height_cm / 2.54);
+      const feet = Math.floor(totalInches / 12);
+      const inches = totalInches % 12;
+      parts.push(`Height: ${feet}'${inches}"`);
+    } else {
+      parts.push(`Height: ${profile.height_cm} cm`);
+    }
+  }
+  return parts.length > 0 ? parts.join(' | ') : 'Not provided';
+}
+
+function formatMoodData(moodEntries: MoodEntry[]): string {
+  if (moodEntries.length === 0) return 'No mood data logged yet.';
+
+  const recent = moodEntries.slice(0, 7);
+  const avgMood = (recent.reduce((s, m) => s + m.mood, 0) / recent.length).toFixed(1);
+  const avgEnergy = (recent.reduce((s, m) => s + m.energy, 0) / recent.length).toFixed(1);
+  const avgSleep = (recent.reduce((s, m) => s + m.sleep_quality, 0) / recent.length).toFixed(1);
+
+  let summary = `Recent averages (${recent.length} entries): Mood ${avgMood}/5, Energy ${avgEnergy}/5, Sleep ${avgSleep}/5`;
+
+  const today = recent[0];
+  if (today) {
+    summary += `\nToday: Mood ${today.mood}/5, Energy ${today.energy}/5, Sleep ${today.sleep_quality}/5`;
+  }
+
+  return summary;
 }
 
 function formatInjuries(injuriesJson: string): string {
@@ -105,6 +146,7 @@ export function buildBlockOutlinePrompt(
   return `You are FlexCoach, an expert triathlon and strength coach designing a multi-week training periodization plan.
 
 ## Athlete Profile
+- Basics: ${formatBasics(profile)}
 - Experience: Returning triathlete (took a year off, maintaining base fitness)
 - Injuries: ${formatInjuries(profile.injuries)}
   CRITICAL: Left knee ACL history. All programming must be ACL-conscious.
@@ -149,11 +191,13 @@ export function buildPlanGenerationPrompt(
   events: TrainingEvent[],
   currentBlock: TrainingBlock | null,
   recentWorkouts: Workout[],
-  weekNumber: number
+  weekNumber: number,
+  moodEntries: MoodEntry[] = []
 ): string {
   return `You are FlexCoach, an expert triathlon and strength coach creating a detailed weekly training plan.
 
 ## Athlete Profile
+- Basics: ${formatBasics(profile)}
 - Experience: Returning triathlete
 - Injuries: ${formatInjuries(profile.injuries)}
   CRITICAL: Left knee ACL history. Every session must include:
@@ -190,6 +234,9 @@ ${formatSchedule(schedule)}
 ## Recent Activity (last 2 weeks)
 ${formatRecentActivity(recentWorkouts)}
 
+## Athlete Mood & Energy
+${formatMoodData(moodEntries)}
+
 ## Upcoming Events
 ${formatEvents(events)}
 
@@ -221,7 +268,8 @@ export function buildChatSystemPrompt(
   todayWorkouts: Workout[],
   weekWorkouts: Workout[],
   events: TrainingEvent[],
-  recentWorkouts: Workout[]
+  recentWorkouts: Workout[],
+  moodEntries: MoodEntry[] = []
 ): string {
   const todaySummary =
     todayWorkouts.length > 0
@@ -244,9 +292,13 @@ export function buildChatSystemPrompt(
 - If the athlete asks to modify today's plan, swap workouts, or make changes, include a plan_update block.
 
 ## Athlete Context
+- Basics: ${formatBasics(profile)}
 - Equipment: ${formatEquipment(profile.equipment)}
 - Travel mode: ${profile.travel_mode ? 'ON' : 'OFF'}
 - Injuries: ${formatInjuries(profile.injuries)}
+
+## Current Mood & Energy
+${formatMoodData(moodEntries)}
 
 ## Today's Workout
 ${todaySummary}

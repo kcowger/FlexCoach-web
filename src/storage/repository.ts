@@ -13,6 +13,8 @@ import {
   setWorkouts,
   getChatData,
   setChatData,
+  getMoodData,
+  setMoodData,
   nextId,
 } from '@/lib/dataSync';
 import { getTodayISO, addDays } from '@/utils/date';
@@ -24,6 +26,8 @@ import type {
   WorkoutPlan,
   Workout,
   ChatMessage,
+  MoodEntry,
+  MoodContext,
 } from '@/types';
 
 // ── User Profile ──────────────────────────────────────────────────────
@@ -36,7 +40,8 @@ export function updateProfile(
   pid: string,
   updates: Partial<Pick<UserProfile,
     'name' | 'equipment' | 'injuries' | 'goals' | 'experience_level' |
-    'weekly_hours_available' | 'travel_mode' | 'api_key_configured' | 'onboarding_complete'
+    'weekly_hours_available' | 'travel_mode' | 'api_key_configured' | 'onboarding_complete' |
+    'age' | 'weight' | 'weight_unit' | 'height_cm' | 'height_unit' | 'sex'
   >>
 ): void {
   updateProfileData(pid, updates);
@@ -304,4 +309,53 @@ export function saveChatMessage(
 
 export function clearChatHistory(pid: string): void {
   setChatData(pid, []);
+}
+
+// ── Mood Entries ──────────────────────────────────────────────────────
+
+export function getMoodEntries(pid: string): MoodEntry[] {
+  return getMoodData(pid);
+}
+
+export function getTodayMood(pid: string, date: string): MoodEntry | null {
+  return getMoodData(pid).find(
+    (m) => m.date === date && m.context === 'daily'
+  ) || null;
+}
+
+export function getWorkoutMood(pid: string, workoutId: number): MoodEntry | null {
+  return getMoodData(pid).find(
+    (m) => m.workout_id === workoutId && m.context === 'pre_workout'
+  ) || null;
+}
+
+export function getRecentMoodEntries(pid: string, days: number = 14): MoodEntry[] {
+  const cutoff = addDays(getTodayISO(), -days);
+  return getMoodData(pid)
+    .filter((m) => m.date >= cutoff)
+    .sort((a, b) => b.date.localeCompare(a.date));
+}
+
+export function saveMoodEntry(
+  pid: string,
+  mood: number,
+  energy: number,
+  sleepQuality: number,
+  context: MoodContext,
+  workoutId?: number
+): number {
+  const entries = getMoodData(pid);
+  const id = nextId();
+  entries.push({
+    id,
+    date: getTodayISO(),
+    mood,
+    energy,
+    sleep_quality: sleepQuality,
+    context,
+    workout_id: workoutId,
+    created_at: new Date().toISOString(),
+  });
+  setMoodData(pid, entries);
+  return id;
 }

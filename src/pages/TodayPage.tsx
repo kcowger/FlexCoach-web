@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { RefreshCw, PartyPopper, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useWorkoutStore } from '@/stores/useWorkoutStore';
+import { useMoodStore } from '@/stores/useMoodStore';
+import MoodCheckIn from '@/components/mood/MoodCheckIn';
 import WorkoutCard from '@/components/workout/WorkoutCard';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -25,13 +27,16 @@ export default function TodayPage() {
     markSkipped,
   } = useWorkoutStore();
 
+  const { todayMood, loadTodayMood, logMood } = useMoodStore();
+
   const [skipModal, setSkipModal] = useState<{ workoutId: number } | null>(null);
   const [skipReason, setSkipReason] = useState('');
 
   useEffect(() => {
     loadToday(pid);
     loadCurrentBlock(pid);
-  }, [pid, loadToday, loadCurrentBlock]);
+    loadTodayMood(pid);
+  }, [pid, loadToday, loadCurrentBlock, loadTodayMood]);
 
   function handleRefresh() {
     loadToday(pid);
@@ -92,6 +97,23 @@ export default function TodayPage() {
           <RefreshCw className="h-5 w-5" />
         </button>
       </div>
+
+      {/* Daily Mood Check-in */}
+      {!todayMood ? (
+        <MoodCheckIn
+          title="How are you feeling today?"
+          onSubmit={(mood, energy, sleep) =>
+            logMood(pid, mood, energy, sleep, 'daily')
+          }
+        />
+      ) : (
+        <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-surface px-4 py-3">
+          <span className="text-xs text-muted">Today's check-in:</span>
+          <span className="text-xs font-medium">
+            Mood {todayMood.mood}/5 &middot; Energy {todayMood.energy}/5 &middot; Sleep {todayMood.sleep_quality}/5
+          </span>
+        </div>
+      )}
 
       {/* Error Banner */}
       {generationError && (

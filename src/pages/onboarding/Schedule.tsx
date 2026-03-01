@@ -69,7 +69,7 @@ export default function Schedule() {
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
-        <p className="text-sm text-muted text-center flex-1 pr-10">Step 6 of 6</p>
+        <p className="text-sm text-muted text-center flex-1 pr-10">Step 7 of 7</p>
       </div>
 
       {/* Content */}

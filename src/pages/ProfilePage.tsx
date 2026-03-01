@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   User,
+  Ruler,
   Target,
   Dumbbell,
   Heart,
   Calendar,
   Clock,
+  Activity,
   Settings,
   Plus,
   X,
@@ -15,6 +17,7 @@ import {
 import { useAppStore } from '@/stores/useAppStore';
 import { useProfileStore } from '@/stores/useProfileStore';
 import { useAuthStore } from '@/stores/useAuthStore';
+import { useMoodStore } from '@/stores/useMoodStore';
 import {
   createEvent,
   deleteEvent,
@@ -37,6 +40,9 @@ import type {
   EventType,
   EventPriority,
   TimeSlot,
+  Sex,
+  WeightUnit,
+  HeightUnit,
 } from '@/types';
 
 const inputClasses =
@@ -57,6 +63,7 @@ export default function ProfilePage() {
     loadSchedule,
     loadEvents,
   } = useProfileStore();
+  const { recentMood, loadRecentMood } = useMoodStore();
 
   // Local state for editing
   const [name, setName] = useState('');
@@ -65,6 +72,16 @@ export default function ProfilePage() {
   const [goals, setGoals] = useState('');
   const [equipment, setEquipment] = useState<Equipment>({ ...DEFAULT_EQUIPMENT });
   const [injuries, setInjuries] = useState<Injury[]>([]);
+
+  // Basics fields
+  const [age, setAge] = useState('');
+  const [weight, setWeight] = useState('');
+  const [weightUnit, setWeightUnit] = useState<WeightUnit>('lbs');
+  const [heightFeet, setHeightFeet] = useState('');
+  const [heightInches, setHeightInches] = useState('');
+  const [heightCm, setHeightCm] = useState('');
+  const [heightUnit, setHeightUnit] = useState<HeightUnit>('imperial');
+  const [sex, setSex] = useState<Sex | ''>('');
 
   // Event modal
   const [showEventModal, setShowEventModal] = useState(false);
@@ -83,7 +100,8 @@ export default function ProfilePage() {
     loadProfile(pid);
     loadSchedule(pid);
     loadEvents(pid);
-  }, [pid, loadProfile, loadSchedule, loadEvents]);
+    loadRecentMood(pid);
+  }, [pid, loadProfile, loadSchedule, loadEvents, loadRecentMood]);
 
   // Sync local state when profile loads
   useEffect(() => {
@@ -102,6 +120,21 @@ export default function ProfilePage() {
     } catch {
       setInjuries([]);
     }
+    // Basics
+    if (profile.age) setAge(String(profile.age));
+    if (profile.weight) setWeight(String(profile.weight));
+    if (profile.weight_unit) setWeightUnit(profile.weight_unit);
+    if (profile.height_cm) {
+      if (profile.height_unit === 'imperial') {
+        const totalInches = Math.round(profile.height_cm / 2.54);
+        setHeightFeet(String(Math.floor(totalInches / 12)));
+        setHeightInches(String(totalInches % 12));
+      } else {
+        setHeightCm(String(profile.height_cm));
+      }
+    }
+    if (profile.height_unit) setHeightUnit(profile.height_unit);
+    if (profile.sex) setSex(profile.sex);
   }, [profile]);
 
   // ── Save Handlers ──────────────────────────────────────────────────
@@ -116,6 +149,21 @@ export default function ProfilePage() {
 
   function saveGoals() {
     updateProfile(pid, { goals });
+  }
+
+  function saveBasics() {
+    const heightInCm =
+      heightUnit === 'imperial'
+        ? ((Number(heightFeet) || 0) * 12 + (Number(heightInches) || 0)) * 2.54
+        : Number(heightCm) || undefined;
+    updateProfile(pid, {
+      age: Number(age) || undefined,
+      weight: Number(weight) || undefined,
+      weight_unit: weightUnit,
+      height_cm: heightInCm || undefined,
+      height_unit: heightUnit,
+      sex: sex || undefined,
+    });
   }
 
   function toggleEquipment(key: string) {
@@ -273,7 +321,115 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* 2. Goals */}
+      {/* 2. Basics */}
+      <Card>
+        <div className="flex items-center gap-2 mb-4">
+          <Ruler className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold text-text">Basics</h2>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="text-sm text-muted mb-1 block">Age</label>
+              <input
+                type="number"
+                placeholder="e.g. 30"
+                min={13}
+                max={100}
+                value={age}
+                onChange={(e) => setAge(e.target.value)}
+                className={inputClasses}
+              />
+            </div>
+            <div>
+              <label className="text-sm text-muted mb-1 block">Sex</label>
+              <select
+                value={sex}
+                onChange={(e) => setSex(e.target.value as Sex)}
+                className={selectClasses}
+              >
+                <option value="">—</option>
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+                <option value="prefer_not_to_say">Prefer not to say</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-muted mb-1 block">Weight</label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                placeholder={weightUnit === 'lbs' ? 'e.g. 170' : 'e.g. 77'}
+                value={weight}
+                onChange={(e) => setWeight(e.target.value)}
+                className={`${inputClasses} flex-1`}
+              />
+              <button
+                type="button"
+                onClick={() => setWeightUnit(weightUnit === 'lbs' ? 'kg' : 'lbs')}
+                className="cursor-pointer rounded-xl bg-surface border border-surface-light px-4 py-3 text-sm font-medium text-muted hover:text-text transition-colors min-w-[60px]"
+              >
+                {weightUnit}
+              </button>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm text-muted mb-1 block">Height</label>
+            <div className="flex gap-2">
+              {heightUnit === 'imperial' ? (
+                <>
+                  <input
+                    type="number"
+                    placeholder="ft"
+                    min={3}
+                    max={8}
+                    value={heightFeet}
+                    onChange={(e) => setHeightFeet(e.target.value)}
+                    className={`${inputClasses} flex-1`}
+                  />
+                  <input
+                    type="number"
+                    placeholder="in"
+                    min={0}
+                    max={11}
+                    value={heightInches}
+                    onChange={(e) => setHeightInches(e.target.value)}
+                    className={`${inputClasses} flex-1`}
+                  />
+                </>
+              ) : (
+                <input
+                  type="number"
+                  placeholder="e.g. 178"
+                  min={100}
+                  max={250}
+                  value={heightCm}
+                  onChange={(e) => setHeightCm(e.target.value)}
+                  className={`${inputClasses} flex-1`}
+                />
+              )}
+              <button
+                type="button"
+                onClick={() => setHeightUnit(heightUnit === 'imperial' ? 'metric' : 'imperial')}
+                className="cursor-pointer rounded-xl bg-surface border border-surface-light px-4 py-3 text-sm font-medium text-muted hover:text-text transition-colors min-w-[60px]"
+              >
+                {heightUnit === 'imperial' ? 'ft/in' : 'cm'}
+              </button>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <Button title="Save" variant="primary" size="sm" onClick={saveBasics} />
+          </div>
+        </div>
+      </Card>
+
+      {/* 3. Goals */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <Target className="h-5 w-5 text-primary" />
@@ -474,7 +630,46 @@ export default function ProfilePage() {
         </div>
       </Card>
 
-      {/* 7. Actions */}
+      {/* 7. Mood History */}
+      <Card>
+        <div className="flex items-center gap-2 mb-4">
+          <Activity className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold text-text">Recent Mood</h2>
+        </div>
+
+        {recentMood.length === 0 ? (
+          <p className="text-sm text-muted">No mood entries yet. Log your first check-in from the Today tab.</p>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {recentMood.slice(0, 10).map((entry) => (
+              <div
+                key={entry.id}
+                className="flex items-center justify-between rounded-xl bg-surface-light/50 px-3 py-2"
+              >
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted w-20">{entry.date}</span>
+                  <span className="text-xs text-muted/60">
+                    {entry.context === 'daily' ? 'Daily' : 'Pre-workout'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-xs font-medium">
+                  <span className={entry.mood >= 4 ? 'text-success' : entry.mood <= 2 ? 'text-danger' : 'text-warning'}>
+                    M:{entry.mood}
+                  </span>
+                  <span className={entry.energy >= 4 ? 'text-success' : entry.energy <= 2 ? 'text-danger' : 'text-warning'}>
+                    E:{entry.energy}
+                  </span>
+                  <span className={entry.sleep_quality >= 4 ? 'text-success' : entry.sleep_quality <= 2 ? 'text-danger' : 'text-warning'}>
+                    S:{entry.sleep_quality}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
+      {/* 8. Actions */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <Settings className="h-5 w-5 text-primary" />

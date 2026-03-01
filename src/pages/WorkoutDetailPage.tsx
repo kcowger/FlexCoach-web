@@ -3,7 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useWorkoutStore } from '@/stores/useWorkoutStore';
+import { useMoodStore } from '@/stores/useMoodStore';
 import { getWorkoutById } from '@/storage/repository';
+import MoodCheckIn from '@/components/mood/MoodCheckIn';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -25,11 +27,13 @@ export default function WorkoutDetailPage() {
   const navigate = useNavigate();
   const pid = useAppStore((s) => s.activeProfileId)!;
   const { markComplete, markSkipped, updateNotes } = useWorkoutStore();
+  const { checkWorkoutMood, logMood } = useMoodStore();
 
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [notFound, setNotFound] = useState(false);
   const [notes, setNotes] = useState('');
   const [notesSaved, setNotesSaved] = useState(false);
+  const [workoutMoodLogged, setWorkoutMoodLogged] = useState(false);
 
   const [skipModal, setSkipModal] = useState(false);
   const [skipReason, setSkipReason] = useState('');
@@ -45,8 +49,10 @@ export default function WorkoutDetailPage() {
     } else {
       setWorkout(w);
       setNotes(w.notes || '');
+      const existing = checkWorkoutMood(pid, w.id);
+      setWorkoutMoodLogged(!!existing);
     }
-  }, [pid, workoutId]);
+  }, [pid, workoutId, checkWorkoutMood]);
 
   function reloadWorkout() {
     if (!workoutId) return;
@@ -159,6 +165,17 @@ export default function WorkoutDetailPage() {
           </p>
         )}
       </Card>
+
+      {/* Pre-workout Mood Check-in */}
+      {workout.status === 'pending' && !workoutMoodLogged && (
+        <MoodCheckIn
+          title="Pre-workout check-in"
+          onSubmit={(mood, energy, sleep) => {
+            logMood(pid, mood, energy, sleep, 'pre_workout', workout.id);
+            setWorkoutMoodLogged(true);
+          }}
+        />
+      )}
 
       {/* Details */}
       {workout.details && (
