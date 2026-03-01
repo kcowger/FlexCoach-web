@@ -1,0 +1,18 @@
+export const colors = {
+  primary: '#2563EB',
+  background: '#0F172A',
+  surface: '#1E293B',
+  surfaceLight: '#334155',
+  text: '#F8FAFC',
+  muted: '#94A3B8',
+  swim: '#0EA5E9',
+  bike: '#22C55E',
+  run: '#F97316',
+  strength: '#A855F7',
+  rest: '#94A3B8',
+  recovery: '#14B8A6',
+  brick: '#EAB308',
+  success: '#22C55E',
+  danger: '#EF4444',
+  warning: '#F59E0B',
+};
