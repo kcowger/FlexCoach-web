@@ -6,6 +6,7 @@ import { useWorkoutStore } from '@/stores/useWorkoutStore';
 import { useMoodStore } from '@/stores/useMoodStore';
 import MoodCheckIn from '@/components/mood/MoodCheckIn';
 import WorkoutCard from '@/components/workout/WorkoutCard';
+import SwapWorkoutModal from '@/components/workout/SwapWorkoutModal';
 import WeekVolumeSummary from '@/components/workout/WeekVolumeSummary';
 import CoachChat from '@/components/coach/CoachChat';
 import Button from '@/components/ui/Button';
@@ -73,6 +74,9 @@ export default function TodayPage() {
   const [editDistance, setEditDistance] = useState('');
   const [editDistanceUnit, setEditDistanceUnit] = useState<DistanceUnit>('mi');
 
+  // Swap modal
+  const [swapWorkout, setSwapWorkout] = useState<Workout | null>(null);
+
   // Coach
   const [coachExpanded, setCoachExpanded] = useState(false);
 
@@ -125,6 +129,13 @@ export default function TodayPage() {
       distanceUnit: hasDistance(editDiscipline) ? editDistanceUnit : undefined,
     });
     setCustomizeWorkout(null);
+    loadToday(pid, selectedDate);
+  }
+
+  function handleSwapAccept(changes: Record<string, unknown>) {
+    if (!swapWorkout) return;
+    applyWorkoutUpdate(pid, swapWorkout.id, changes);
+    setSwapWorkout(null);
     loadToday(pid, selectedDate);
   }
 
@@ -246,6 +257,7 @@ export default function TodayPage() {
               onClick={() => navigate(`/workout/${workout.id}`)}
               onComplete={() => handleComplete(workout.id)}
               onCustomize={() => openCustomize(workout)}
+              onSwap={() => setSwapWorkout(workout)}
               onSkip={() => setSkipModal({ workoutId: workout.id })}
             />
           ))}
@@ -468,6 +480,17 @@ export default function TodayPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Swap Workout Modal */}
+      {swapWorkout && (
+        <SwapWorkoutModal
+          open={!!swapWorkout}
+          workout={swapWorkout}
+          pid={pid}
+          onClose={() => setSwapWorkout(null)}
+          onAccept={handleSwapAccept}
+        />
+      )}
     </div>
   );
 }

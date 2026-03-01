@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Pencil } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Pencil, ArrowLeftRight } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useWorkoutStore } from '@/stores/useWorkoutStore';
 import { useMoodStore } from '@/stores/useMoodStore';
 import { getWorkoutById } from '@/storage/repository';
 import MoodCheckIn from '@/components/mood/MoodCheckIn';
 import PostWorkoutCheckIn from '@/components/workout/PostWorkoutCheckIn';
+import SwapWorkoutModal from '@/components/workout/SwapWorkoutModal';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -53,6 +54,9 @@ export default function WorkoutDetailPage() {
   const [editDetails, setEditDetails] = useState('');
   const [editDistance, setEditDistance] = useState('');
   const [editDistanceUnit, setEditDistanceUnit] = useState<DistanceUnit>('mi');
+
+  // Swap modal
+  const [swapModal, setSwapModal] = useState(false);
 
   useEffect(() => {
     if (!workoutId) {
@@ -125,6 +129,13 @@ export default function WorkoutDetailPage() {
       distanceUnit: hasDistance(editDiscipline) ? editDistanceUnit : undefined,
     });
     setEditModal(false);
+    reloadWorkout();
+  }
+
+  function handleSwapAccept(changes: Record<string, unknown>) {
+    if (!workout) return;
+    applyWorkoutUpdate(pid, workout.id, changes);
+    setSwapModal(false);
     reloadWorkout();
   }
 
@@ -315,6 +326,13 @@ export default function WorkoutDetailPage() {
               Complete
             </button>
             <button
+              onClick={() => setSwapModal(true)}
+              className="cursor-pointer flex flex-1 items-center justify-center gap-2 rounded-xl bg-warning/15 border border-warning/20 py-3 text-sm font-semibold text-warning hover:bg-warning/25 transition-all duration-200 active:scale-[0.98]"
+            >
+              <ArrowLeftRight className="h-5 w-5" />
+              Swap
+            </button>
+            <button
               onClick={() => setSkipModal(true)}
               className="cursor-pointer flex flex-1 items-center justify-center gap-2 rounded-xl bg-danger/15 border border-danger/20 py-3 text-sm font-semibold text-danger hover:bg-danger/25 transition-all duration-200 active:scale-[0.98]"
             >
@@ -477,6 +495,17 @@ export default function WorkoutDetailPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Swap Workout Modal */}
+      {workout && (
+        <SwapWorkoutModal
+          open={swapModal}
+          workout={workout}
+          pid={pid}
+          onClose={() => setSwapModal(false)}
+          onAccept={handleSwapAccept}
+        />
+      )}
     </div>
   );
 }

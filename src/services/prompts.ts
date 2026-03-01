@@ -396,3 +396,79 @@ When the athlete requests a plan change (swap workout, modify today's session, u
 
 Only include plan_update when the athlete explicitly requests a change. For questions and advice, just respond conversationally.`;
 }
+
+// ── Swap Workout Prompt ──────────────────────────────────────────────
+
+export function buildSwapPrompt(
+  profile: UserProfile,
+  schedule: SchedulePreference[],
+  workoutToReplace: Workout,
+  swapReason: string,
+  weekWorkouts: Workout[],
+  events: TrainingEvent[],
+  recentWorkouts: Workout[],
+  moodEntries: MoodEntry[] = [],
+  benchmarks: Benchmarks = {}
+): string {
+  const weekSummary = weekWorkouts
+    .map((w) => `${w.date} ${w.time_slot}: ${w.discipline} — ${w.title} [${w.status}]`)
+    .join('\n');
+
+  return `You are FlexCoach, an expert fitness and endurance coach. The athlete needs to replace one workout with a suitable alternative.
+
+## Athlete Profile
+- Basics: ${formatBasics(profile)}
+- Experience: ${profile.experience_level}
+- Injuries: ${formatInjuries(profile.injuries)}
+- Equipment: ${formatEquipment(profile.equipment)}
+- Travel mode: ${profile.travel_mode ? 'YES — use hotel/travel-friendly alternatives only' : 'No'}
+
+## Workout to Replace
+- Date: ${workoutToReplace.date}, Time Slot: ${workoutToReplace.time_slot}
+- Discipline: ${workoutToReplace.discipline}
+- Title: ${workoutToReplace.title}
+- Duration: ${workoutToReplace.duration_minutes} min
+- Details: ${workoutToReplace.details}
+
+## Reason for Swap
+${swapReason}
+
+## This Week's Plan
+${weekSummary || 'No other workouts this week'}
+
+## Schedule
+${formatSchedule(schedule)}
+
+## Recent Activity (last 2 weeks)
+${formatRecentActivity(recentWorkouts)}
+
+## Athlete Mood & Energy
+${formatMoodData(moodEntries)}
+
+## Performance Benchmarks
+${formatBenchmarks(benchmarks)}
+${formatRecentRpe(recentWorkouts) ? `\n## Recent Effort Data\n${formatRecentRpe(recentWorkouts)}` : ''}
+
+## Upcoming Events
+${formatEvents(events)}
+
+## Output Format
+Return ONLY valid JSON for a single replacement workout:
+{
+  "discipline": "swim|bike|run|strength|rest|recovery|brick",
+  "title": "Short descriptive title",
+  "durationMinutes": number,
+  "distance": number_or_null,
+  "distanceUnit": "mi|km|yd|m" or null,
+  "details": "SPECIFIC workout prescription. Include zones, distances, paces, intervals, sets, reps, rest periods.",
+  "why": "1-2 sentences explaining why this is a good replacement given the swap reason and weekly plan."
+}
+
+CONSTRAINTS:
+- If the swap reason involves facility or equipment access (pool closed, no gym, etc.), do NOT suggest the same discipline.
+- Keep the same approximate duration as the original workout.
+- Consider the rest of the week: avoid duplicating today's other sessions or creating back-to-back hard days in the same discipline.
+- Use only the athlete's available equipment. Account for injuries.
+- DISTANCE: For swim, bike, run, include distance and distanceUnit (mi for bike/run, yd for swim). For others, set both to null.
+- Be SPECIFIC in details — not "easy run" but exact prescription with warm-up, zones, and cool-down.`;
+}

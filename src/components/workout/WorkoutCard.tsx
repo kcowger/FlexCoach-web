@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, Pencil } from 'lucide-react';
+import { CheckCircle2, XCircle, Pencil, ArrowLeftRight } from 'lucide-react';
 import type { Workout } from '@/types';
 import Badge from '@/components/ui/Badge';
 import { formatDuration } from '@/utils/date';
@@ -9,6 +9,7 @@ interface WorkoutCardProps {
   onClick?: () => void;
   onComplete?: () => void;
   onCustomize?: () => void;
+  onSwap?: () => void;
   onSkip?: () => void;
 }
 
@@ -33,6 +34,7 @@ export default function WorkoutCard({
   onClick,
   onComplete,
   onCustomize,
+  onSwap,
   onSkip,
 }: WorkoutCardProps) {
   const isDone = workout.status === 'completed' || workout.status === 'skipped';
@@ -104,6 +106,18 @@ export default function WorkoutCard({
           <Pencil className="h-4 w-4" />
           {isDone ? 'Edit' : 'Customize'}
         </button>
+        {workout.status === 'pending' && onSwap && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSwap();
+            }}
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-warning/15 border border-warning/20 py-2.5 text-sm font-medium text-warning cursor-pointer hover:bg-warning/25 transition-all duration-200 active:scale-[0.98]"
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+            Swap
+          </button>
+        )}
         {workout.status === 'pending' && (
           <button
             onClick={(e) => {

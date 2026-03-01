@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useWorkoutStore } from '@/stores/useWorkoutStore';
 import WorkoutCard from '@/components/workout/WorkoutCard';
+import SwapWorkoutModal from '@/components/workout/SwapWorkoutModal';
 import WeekVolumeSummary from '@/components/workout/WeekVolumeSummary';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -59,6 +60,9 @@ export default function WeekPage() {
   const [editDistance, setEditDistance] = useState('');
   const [editDistanceUnit, setEditDistanceUnit] = useState<DistanceUnit>('mi');
 
+  // Swap modal
+  const [swapWorkout, setSwapWorkout] = useState<Workout | null>(null);
+
   const weekStart = getWeekStartISO(
     new Date(Date.now() + weekOffset * 7 * 24 * 60 * 60 * 1000)
   );
@@ -113,6 +117,13 @@ export default function WeekPage() {
       distanceUnit: hasDistance(editDiscipline) ? editDistanceUnit : undefined,
     });
     setCustomizeWorkout(null);
+    loadWeek(pid, weekStart);
+  }
+
+  function handleSwapAccept(changes: Record<string, unknown>) {
+    if (!swapWorkout) return;
+    applyWorkoutUpdate(pid, swapWorkout.id, changes);
+    setSwapWorkout(null);
     loadWeek(pid, weekStart);
   }
 
@@ -231,6 +242,7 @@ export default function WeekPage() {
                 onClick={() => navigate(`/workout/${w.id}`)}
                 onComplete={() => handleComplete(w.id)}
                 onCustomize={() => openCustomize(w)}
+                onSwap={() => setSwapWorkout(w)}
                 onSkip={() => setSkipModal({ workoutId: w.id })}
               />
             ))
@@ -388,6 +400,17 @@ export default function WeekPage() {
           </div>
         </div>
       </Modal>
+
+      {/* Swap Workout Modal */}
+      {swapWorkout && (
+        <SwapWorkoutModal
+          open={!!swapWorkout}
+          workout={swapWorkout}
+          pid={pid}
+          onClose={() => setSwapWorkout(null)}
+          onAccept={handleSwapAccept}
+        />
+      )}
     </div>
   );
 }
