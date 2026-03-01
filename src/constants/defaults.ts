@@ -1,27 +1,28 @@
-import type { Equipment, Injury } from '@/types';
-
-export const DEFAULT_EQUIPMENT: Equipment = {
-  mat: true,
-  pushup_bars: true,
-  kettlebell_35lb: true,
-  ab_roller: true,
-  pool_access: true,
-  indoor_bike: true,
-  outdoor_bike: true,
-  open_space: true,
-};
-
-export const DEFAULT_INJURIES: Injury[] = [
-  {
-    area: 'left_knee',
-    type: 'Torn ACL',
-    notes: 'Fully recovered. Be mindful of knee-loading exercises. Include prehab/warm-up.',
-    recovered: true,
-  },
+export const SUGGESTED_EQUIPMENT: string[] = [
+  'Exercise Mat',
+  'Dumbbells',
+  'Kettlebell',
+  'Pull-up Bar',
+  'Resistance Bands',
+  'Foam Roller',
+  'Jump Rope',
+  'Barbell + Rack',
+  'Pool Access',
+  'Indoor Bike / Trainer',
+  'Outdoor Bike',
+  'Treadmill',
+  'Gym Membership',
 ];
 
-export const DEFAULT_GOALS =
-  'Feel like an athlete again. Build muscle and strength. Look good. Be healthy.';
+export const SUGGESTED_GOALS: string[] = [
+  'Build endurance',
+  'Get stronger',
+  'Lose weight',
+  'Train for a race',
+  'Improve general fitness',
+  'Build muscle',
+  'Recover from injury',
+];
 
 export const EVENT_TYPE_LABELS: Record<string, string> = {
   sprint_tri: 'Sprint Triathlon',
@@ -49,18 +50,9 @@ export const DAY_LABELS_FULL = [
 ];
 
 export const TIME_SLOT_LABELS: Record<string, string> = {
-  morning: 'Morning (5-7am)',
-  midday: 'Midday (11am-1pm)',
-  evening: 'Evening (6-9pm)',
+  morning: 'Morning',
+  midday: 'Midday',
+  evening: 'Evening',
 };
 
-export const EQUIPMENT_LABELS: Record<string, string> = {
-  mat: 'Exercise Mat',
-  pushup_bars: 'Push-up Bars/Handles',
-  kettlebell_35lb: '35lb Kettlebell',
-  ab_roller: 'Ab Roller',
-  pool_access: 'Pool Access',
-  indoor_bike: 'Indoor Bike',
-  outdoor_bike: 'Outdoor Bike',
-  open_space: 'Open Space (basement)',
-};
+export const DURATION_OPTIONS = [30, 45, 60, 90, 120];

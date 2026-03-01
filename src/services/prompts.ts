@@ -174,15 +174,15 @@ function formatInjuries(injuriesJson: string): string {
       )
       .join('\n  - ');
   } catch {
-    return 'Left knee (torn ACL, fully recovered)';
+    return 'None reported';
   }
 }
 
 function formatSchedule(schedule: SchedulePreference[]): string {
   const slotNames: Record<TimeSlot, string> = {
-    morning: '5-7am',
-    midday: '11am-1pm',
-    evening: '6-9pm',
+    morning: 'Morning',
+    midday: 'Midday',
+    evening: 'Evening',
   };
 
   const lines: string[] = [];
@@ -243,13 +243,16 @@ export function buildBlockOutlinePrompt(
   events: TrainingEvent[],
   schedule: SchedulePreference[]
 ): string {
-  return `You are FlexCoach, an expert triathlon and strength coach designing a multi-week training periodization plan.
+  const injuryNote = formatInjuries(profile.injuries) !== 'None'
+    ? `\n  IMPORTANT: Account for these injuries in all programming. Include appropriate warm-up and prehab.`
+    : '';
+
+  return `You are FlexCoach, an expert fitness and endurance coach designing a multi-week training periodization plan.
 
 ## Athlete Profile
 - Basics: ${formatBasics(profile)}
-- Experience: Returning triathlete (took a year off, maintaining base fitness)
-- Injuries: ${formatInjuries(profile.injuries)}
-  CRITICAL: Left knee ACL history. All programming must be ACL-conscious.
+- Experience: ${profile.experience_level}
+- Injuries: ${formatInjuries(profile.injuries)}${injuryNote}
 - Equipment: ${formatEquipment(profile.equipment)}
 - Weekly hours available: ${profile.weekly_hours_available}
 - Goals: ${profile.goals}
@@ -295,18 +298,16 @@ export function buildPlanGenerationPrompt(
   moodEntries: MoodEntry[] = [],
   benchmarks: Benchmarks = {}
 ): string {
-  return `You are FlexCoach, an expert triathlon and strength coach creating a detailed weekly training plan.
+  const injuryInstructions = formatInjuries(profile.injuries) !== 'None'
+    ? `\n  IMPORTANT: Account for all listed injuries. Include appropriate warm-up, prehab exercises, and modifications as needed.`
+    : '';
+
+  return `You are FlexCoach, an expert fitness and endurance coach creating a detailed weekly training plan.
 
 ## Athlete Profile
 - Basics: ${formatBasics(profile)}
-- Experience: Returning triathlete
-- Injuries: ${formatInjuries(profile.injuries)}
-  CRITICAL: Left knee ACL history. Every session must include:
-    - Appropriate warm-up with knee prehab
-    - No deep squats below parallel without prior warm-up
-    - Avoid high-impact plyometrics
-    - Favor single-leg stability work
-    - Prefer softer running surfaces when possible
+- Experience: ${profile.experience_level}
+- Injuries: ${formatInjuries(profile.injuries)}${injuryInstructions}
 - Equipment: ${formatEquipment(profile.equipment)}
 - Travel mode: ${profile.travel_mode ? 'YES — use hotel/travel-friendly alternatives only' : 'No'}
 
@@ -318,16 +319,14 @@ ${formatCurrentBlock(currentBlock)}
 ## Training Principles
 ENDURANCE (80/20 Polarized):
 - 80% easy/conversational pace (Zone 1-2), 20% threshold or above
-- Distribute swim/bike/run across the week — no two consecutive hard sessions in same discipline
+- Distribute endurance sessions across the week — no two consecutive hard sessions in same discipline
 - Progressive volume: max 10% increase per week
-- Include 1 brick workout (bike→run) when schedule allows
 - If in taper phase: reduce volume 30-50%, maintain some intensity
 
-STRENGTH (2-3x/week):
-- Compound movements: push-ups (with bars), kettlebell swings, goblet squats, Turkish get-ups, ab roller
-- Progressive overload via reps, tempo, complexity (35lb KB limit for now)
-- Core and posterior chain emphasis for triathlon performance
-- ACL prehab in every strength session: single-leg balance, lateral band walks, bodyweight squats
+STRENGTH:
+- Use the athlete's available equipment for strength programming
+- Progressive overload via reps, tempo, complexity
+- Core and posterior chain emphasis for athletic performance
 
 ## Schedule This Week
 ${formatSchedule(schedule)}
@@ -363,7 +362,7 @@ Return ONLY valid JSON:
   ]
 }
 
-IMPORTANT: Be SPECIFIC. Not "easy run" but "Easy Zone 2 run, 35 min at 6:00-6:30/km. 5 min warm-up walk + ACL prehab (single-leg balance 30s each, 10 bodyweight squats). Include 4x20s strides in last 10 min. Cool down 5 min walk."`;
+IMPORTANT: Be SPECIFIC. Not "easy run" but "Easy Zone 2 run, 35 min at 6:00-6:30/km. 5 min warm-up walk with dynamic stretches. Include 4x20s strides in last 10 min. Cool down 5 min walk."`;
 }
 
 // ── Coach Chat Prompt ─────────────────────────────────────────────────
@@ -388,13 +387,21 @@ export function buildChatSystemPrompt(
     .map((w) => `${w.date} ${w.time_slot}: ${w.discipline} — ${w.title} [${w.status}]`)
     .join('\n');
 
-  return `You are FlexCoach, a knowledgeable and direct triathlon coach having a conversation with your athlete.
+  const injuryStyle = formatInjuries(profile.injuries) !== 'None'
+    ? `\n- Be mindful of the athlete's injuries in ALL recommendations.`
+    : '';
+  const experienceStyle = profile.experience_level === 'beginner'
+    ? 'Explain concepts when needed.'
+    : profile.experience_level === 'experienced'
+      ? 'The athlete is experienced; skip basics unless asked.'
+      : 'The athlete has some experience; be moderately detailed.';
+
+  return `You are FlexCoach, a knowledgeable and direct fitness coach having a conversation with your athlete.
 
 ## Your Style
 - Specific and actionable. Never vague motivational fluff.
-- Evidence-based training advice.
-- ACL-conscious for ALL recommendations (left knee history).
-- Concise. The athlete is experienced; skip basics unless asked.
+- Evidence-based training advice.${injuryStyle}
+- Concise. ${experienceStyle}
 - If the athlete asks to modify today's plan, swap workouts, or make changes, include a plan_update block.
 
 ## Athlete Context

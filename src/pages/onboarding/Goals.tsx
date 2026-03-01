@@ -3,13 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Target, X } from 'lucide-react';
 import { useProfileStore } from '@/stores/useProfileStore';
 import { useAppStore } from '@/stores/useAppStore';
-import { DEFAULT_GOALS } from '@/constants/defaults';
+import { SUGGESTED_GOALS } from '@/constants/defaults';
 import Button from '@/components/ui/Button';
-
-// Parse the default goals string into an array of individual goals
-const PRESET_GOALS = DEFAULT_GOALS.split('. ')
-  .map((g) => g.replace(/\.$/, '').trim())
-  .filter(Boolean);
 
 export default function Goals() {
   const navigate = useNavigate();
@@ -50,8 +45,8 @@ export default function Goals() {
     navigate('/onboarding/equipment');
   }
 
-  // Goals that were custom-added (not in the preset list)
-  const customGoals = selectedGoals.filter((g) => !PRESET_GOALS.includes(g));
+  // Goals that were custom-added (not in the suggested list)
+  const customGoals = selectedGoals.filter((g) => !SUGGESTED_GOALS.includes(g));
 
   return (
     <div className="bg-background text-text min-h-screen flex flex-col">
@@ -78,9 +73,9 @@ export default function Goals() {
           </p>
         </div>
 
-        {/* Preset goals */}
+        {/* Suggested goals */}
         <div className="flex flex-wrap gap-3 mb-6">
-          {PRESET_GOALS.map((goal) => {
+          {SUGGESTED_GOALS.map((goal) => {
             const isSelected = selectedGoals.includes(goal);
             return (
               <button

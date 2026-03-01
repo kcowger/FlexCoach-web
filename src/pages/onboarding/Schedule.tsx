@@ -4,13 +4,12 @@ import { ArrowLeft, CalendarDays } from 'lucide-react';
 import { useProfileStore } from '@/stores/useProfileStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { upsertSchedulePreference } from '@/storage/repository';
-import { DAY_LABELS_FULL, TIME_SLOT_LABELS } from '@/constants/defaults';
+import { DAY_LABELS_FULL, TIME_SLOT_LABELS, DURATION_OPTIONS } from '@/constants/defaults';
 import type { TimeSlot } from '@/types';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 
 const TIME_SLOTS = Object.keys(TIME_SLOT_LABELS) as TimeSlot[];
-const DURATION_OPTIONS = [30, 45, 60, 90, 120];
 
 interface DayConfig {
   available: boolean;
@@ -133,7 +132,7 @@ export default function Schedule() {
                     {/* Duration selector */}
                     <div>
                       <p className="text-xs text-muted mb-1.5">Max Duration</p>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         {DURATION_OPTIONS.map((mins) => (
                           <button
                             key={mins}
@@ -147,6 +146,18 @@ export default function Schedule() {
                             {mins}m
                           </button>
                         ))}
+                        <input
+                          type="number"
+                          min="10"
+                          max="480"
+                          value={!DURATION_OPTIONS.includes(day.duration) ? day.duration : ''}
+                          placeholder="Other"
+                          onChange={(e) => {
+                            const v = Number(e.target.value);
+                            if (v > 0) updateDay(index, { duration: v });
+                          }}
+                          className="w-16 rounded-lg border border-surface-light bg-surface px-2 py-1.5 text-xs text-text focus:ring-2 focus:ring-primary focus:outline-none"
+                        />
                       </div>
                     </div>
                   </div>

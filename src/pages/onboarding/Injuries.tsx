@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Check, HeartPulse, Plus, X } from 'lucide-react';
+import { ArrowLeft, HeartPulse, Plus, X } from 'lucide-react';
 import { useProfileStore } from '@/stores/useProfileStore';
 import { useAppStore } from '@/stores/useAppStore';
-import { DEFAULT_INJURIES } from '@/constants/defaults';
 import type { Injury } from '@/types';
 import Button from '@/components/ui/Button';
 
@@ -12,67 +11,39 @@ export default function Injuries() {
   const { updateProfile } = useProfileStore();
   const { activeProfileId } = useAppStore();
 
-  // Initialize from defaults - injuries start as inactive (user must toggle on)
-  const [injuries, setInjuries] = useState<(Injury & { enabled: boolean })[]>(
-    DEFAULT_INJURIES.map((inj) => ({ ...inj, enabled: false }))
-  );
-  const [customArea, setCustomArea] = useState('');
+  const [injuries, setInjuries] = useState<Injury[]>([]);
+  const [area, setArea] = useState('');
+  const [type, setType] = useState('');
+  const [notes, setNotes] = useState('');
+  const [showForm, setShowForm] = useState(false);
 
-  function toggleInjury(index: number) {
-    setInjuries((prev) =>
-      prev.map((inj, i) =>
-        i === index ? { ...inj, enabled: !inj.enabled } : inj
-      )
-    );
-  }
-
-  function addCustomInjury() {
-    const trimmed = customArea.trim();
-    if (!trimmed) return;
-
-    // Check for duplicate
-    if (injuries.some((inj) => inj.area.toLowerCase() === trimmed.toLowerCase())) return;
+  function addInjury() {
+    const trimmedArea = area.trim();
+    const trimmedType = type.trim();
+    if (!trimmedArea || !trimmedType) return;
+    if (injuries.some((inj) => inj.area.toLowerCase() === trimmedArea.toLowerCase())) return;
 
     setInjuries((prev) => [
       ...prev,
-      {
-        area: trimmed,
-        type: 'General',
-        notes: '',
-        recovered: false,
-        enabled: true,
-      },
+      { area: trimmedArea, type: trimmedType, notes: notes.trim(), recovered: false },
     ]);
-    setCustomArea('');
+    setArea('');
+    setType('');
+    setNotes('');
+    setShowForm(false);
   }
 
-  function removeCustomInjury(index: number) {
+  function removeInjury(index: number) {
     setInjuries((prev) => prev.filter((_, i) => i !== index));
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter') {
-      addCustomInjury();
-    }
   }
 
   function handleContinue() {
     if (!activeProfileId) return;
-
-    // Only save enabled injuries
-    const activeInjuries: Injury[] = injuries
-      .filter((inj) => inj.enabled)
-      .map(({ area, type, notes, recovered }) => ({ area, type, notes, recovered }));
-
     updateProfile(activeProfileId, {
-      injuries: JSON.stringify(activeInjuries),
+      injuries: JSON.stringify(injuries),
     });
     navigate('/onboarding/schedule');
   }
-
-  // Separate preset vs custom
-  const presetAreas = DEFAULT_INJURIES.map((inj) => inj.area);
-  const customInjuries = injuries.filter((inj) => !presetAreas.includes(inj.area));
 
   return (
     <div className="bg-background text-text min-h-screen flex flex-col">
@@ -99,68 +70,88 @@ export default function Injuries() {
           </p>
         </div>
 
-        {/* Preset injuries */}
-        <div className="flex flex-wrap gap-3 mb-4">
-          {injuries
-            .map((inj, index) => ({ inj, index }))
-            .filter(({ inj }) => presetAreas.includes(inj.area))
-            .map(({ inj, index }) => (
-              <button
+        {/* Current injuries */}
+        {injuries.length > 0 && (
+          <div className="flex flex-col gap-2 mb-4">
+            {injuries.map((inj, index) => (
+              <div
                 key={inj.area}
-                onClick={() => toggleInjury(index)}
-                className={`cursor-pointer inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium border transition-colors ${
-                  inj.enabled
-                    ? 'border-primary bg-primary/20 text-text'
-                    : 'border-surface-light bg-surface text-muted hover:text-text'
-                }`}
+                className="flex items-start justify-between rounded-xl bg-surface border border-surface-light px-4 py-3"
               >
-                {inj.enabled && <Check className="h-4 w-4 text-primary" />}
-                <span>{inj.area.replace(/_/g, ' ')} - {inj.type}</span>
-              </button>
-            ))}
-        </div>
-
-        {/* Custom injuries */}
-        {customInjuries.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {customInjuries.map((inj) => {
-              const index = injuries.indexOf(inj);
-              return (
-                <span
-                  key={inj.area}
-                  className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium border border-primary bg-primary/20 text-text"
+                <div>
+                  <p className="text-sm font-medium text-text">
+                    {inj.area} — {inj.type}
+                  </p>
+                  {inj.notes && (
+                    <p className="text-xs text-muted mt-0.5">{inj.notes}</p>
+                  )}
+                </div>
+                <button
+                  onClick={() => removeInjury(index)}
+                  className="cursor-pointer ml-2 text-muted hover:text-danger transition-colors"
                 >
-                  {inj.area}
-                  <button
-                    onClick={() => removeCustomInjury(index)}
-                    className="cursor-pointer text-muted hover:text-text transition-colors"
-                  >
-                    <X className="h-3.5 w-3.5" />
-                  </button>
-                </span>
-              );
-            })}
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ))}
           </div>
         )}
 
-        {/* Custom injury input */}
-        <div className="flex gap-3 mb-8">
-          <input
-            type="text"
-            placeholder="Add a custom injury or limitation..."
-            value={customArea}
-            onChange={(e) => setCustomArea(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="bg-surface text-text border border-surface-light rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none"
-          />
+        {/* Add injury form */}
+        {showForm ? (
+          <div className="flex flex-col gap-3 mb-8 rounded-xl bg-surface border border-surface-light p-4">
+            <input
+              type="text"
+              placeholder="Area (e.g. left knee, lower back)"
+              value={area}
+              onChange={(e) => setArea(e.target.value)}
+              className="bg-surface-light text-text rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none"
+              autoFocus
+            />
+            <input
+              type="text"
+              placeholder="Type (e.g. torn ACL, tendinitis)"
+              value={type}
+              onChange={(e) => setType(e.target.value)}
+              className="bg-surface-light text-text rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none"
+            />
+            <input
+              type="text"
+              placeholder="Notes (optional)"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="bg-surface-light text-text rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none"
+            />
+            <div className="flex gap-2">
+              <Button
+                title="Add"
+                variant="primary"
+                size="sm"
+                onClick={addInjury}
+                disabled={!area.trim() || !type.trim()}
+              />
+              <Button
+                title="Cancel"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setShowForm(false);
+                  setArea('');
+                  setType('');
+                  setNotes('');
+                }}
+              />
+            </div>
+          </div>
+        ) : (
           <button
-            onClick={addCustomInjury}
-            disabled={!customArea.trim()}
-            className="cursor-pointer rounded-xl bg-surface border border-surface-light px-3 text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={() => setShowForm(true)}
+            className="cursor-pointer flex items-center gap-2 text-sm text-primary hover:text-primary/80 transition-colors mb-8"
           >
-            <Plus className="h-5 w-5" />
+            <Plus className="h-4 w-4" />
+            Add an injury or limitation
           </button>
-        </div>
+        )}
 
         {/* Continue */}
         <div className="mt-auto">

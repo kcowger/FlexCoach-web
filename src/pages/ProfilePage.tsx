@@ -32,8 +32,7 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import {
-  DEFAULT_EQUIPMENT,
-  EQUIPMENT_LABELS,
+  SUGGESTED_EQUIPMENT,
   EVENT_TYPE_LABELS,
   DAY_LABELS,
   TIME_SLOT_LABELS,
@@ -76,7 +75,8 @@ export default function ProfilePage() {
   const [experienceLevel, setExperienceLevel] = useState<ExperienceLevel>('beginner');
   const [weeklyHours, setWeeklyHours] = useState(5);
   const [goals, setGoals] = useState('');
-  const [equipment, setEquipment] = useState<Equipment>({ ...DEFAULT_EQUIPMENT });
+  const [equipment, setEquipment] = useState<Equipment>({});
+  const [customEquipment, setCustomEquipment] = useState('');
   const [injuries, setInjuries] = useState<Injury[]>([]);
 
   // Basics fields
@@ -156,7 +156,7 @@ export default function ProfilePage() {
     try {
       setEquipment(JSON.parse(profile.equipment) as Equipment);
     } catch {
-      setEquipment({ ...DEFAULT_EQUIPMENT });
+      setEquipment({});
     }
     try {
       setInjuries(JSON.parse(profile.injuries) as Injury[]);
@@ -225,10 +225,24 @@ export default function ProfilePage() {
     setBenchmarks(updates);
   }
 
-  function toggleEquipment(key: string) {
-    const updated = { ...equipment, [key]: !equipment[key] };
+  function toggleEquipment(name: string) {
+    const updated = { ...equipment };
+    if (updated[name]) {
+      delete updated[name];
+    } else {
+      updated[name] = true;
+    }
     setEquipment(updated);
     updateProfile(pid, { equipment: JSON.stringify(updated) });
+  }
+
+  function addCustomEquipmentItem() {
+    const trimmed = customEquipment.trim();
+    if (!trimmed || equipment[trimmed]) return;
+    const updated = { ...equipment, [trimmed]: true };
+    setEquipment(updated);
+    updateProfile(pid, { equipment: JSON.stringify(updated) });
+    setCustomEquipment('');
   }
 
   function toggleInjuryRecovered(index: number) {
@@ -608,20 +622,52 @@ export default function ProfilePage() {
           <h2 className="text-base font-semibold text-text">Equipment</h2>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {Object.keys(DEFAULT_EQUIPMENT).map((key) => (
+        {/* Suggested equipment */}
+        <div className="flex flex-wrap gap-2 mb-3">
+          {SUGGESTED_EQUIPMENT.map((name) => (
             <button
-              key={key}
-              onClick={() => toggleEquipment(key)}
+              key={name}
+              onClick={() => toggleEquipment(name)}
               className={`cursor-pointer rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
-                equipment[key]
+                equipment[name]
                   ? 'bg-primary/20 text-primary border border-primary/40'
                   : 'bg-surface-light text-muted border border-surface-light'
               }`}
             >
-              {EQUIPMENT_LABELS[key] || key}
+              {name}
             </button>
           ))}
+          {/* Custom equipment items */}
+          {Object.keys(equipment)
+            .filter((k) => equipment[k] && !SUGGESTED_EQUIPMENT.includes(k))
+            .map((name) => (
+              <button
+                key={name}
+                onClick={() => toggleEquipment(name)}
+                className="cursor-pointer rounded-xl px-3 py-2 text-sm font-medium bg-primary/20 text-primary border border-primary/40 transition-colors"
+              >
+                {name}
+              </button>
+            ))}
+        </div>
+
+        {/* Add custom equipment */}
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder="Add custom equipment..."
+            value={customEquipment}
+            onChange={(e) => setCustomEquipment(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addCustomEquipmentItem(); }}
+            className="bg-surface text-text border border-surface-light rounded-xl px-3 py-2 text-sm flex-1 focus:ring-2 focus:ring-primary focus:outline-none"
+          />
+          <button
+            onClick={addCustomEquipmentItem}
+            disabled={!customEquipment.trim()}
+            className="cursor-pointer rounded-xl bg-surface border border-surface-light px-3 text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Plus className="h-4 w-4" />
+          </button>
         </div>
       </Card>
 

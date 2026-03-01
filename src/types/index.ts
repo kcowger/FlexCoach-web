@@ -141,17 +141,7 @@ export interface Benchmarks {
 }
 
 // Parsed types (from JSON fields)
-export interface Equipment {
-  mat: boolean;
-  pushup_bars: boolean;
-  kettlebell_35lb: boolean;
-  ab_roller: boolean;
-  pool_access: boolean;
-  indoor_bike: boolean;
-  outdoor_bike: boolean;
-  open_space: boolean;
-  [key: string]: boolean;
-}
+export type Equipment = Record<string, boolean>;
 
 export interface Injury {
   area: string;

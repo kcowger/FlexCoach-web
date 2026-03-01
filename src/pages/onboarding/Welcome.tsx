@@ -34,7 +34,7 @@ export default function Welcome() {
           <div className="flex flex-col gap-2">
             <h1 className="text-4xl font-bold tracking-tight">FlexCoach</h1>
             <p className="text-lg text-primary font-medium">
-              Your AI-powered triathlon coach
+              Your AI-powered training coach
             </p>
           </div>
 
@@ -42,7 +42,7 @@ export default function Welcome() {
           <p className="text-muted leading-relaxed max-w-sm">
             FlexCoach creates personalized training plans tailored to your goals,
             schedule, and equipment. Powered by Claude AI, it adapts to your
-            progress and keeps you on track for race day.
+            progress and helps you reach your potential.
           </p>
 
           {/* CTA */}
