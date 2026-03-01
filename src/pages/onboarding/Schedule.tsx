@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CalendarDays } from 'lucide-react';
+import { ArrowLeft, CalendarDays, Plus, X } from 'lucide-react';
 import { useProfileStore } from '@/stores/useProfileStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { upsertSchedulePreference } from '@/storage/repository';
@@ -11,18 +11,27 @@ import Card from '@/components/ui/Card';
 
 const TIME_SLOTS = Object.keys(TIME_SLOT_LABELS) as TimeSlot[];
 
-interface DayConfig {
-  available: boolean;
+interface SlotConfig {
   timeSlot: TimeSlot;
   duration: number;
 }
 
+interface DayConfig {
+  available: boolean;
+  slots: SlotConfig[];
+}
+
 function createDefaultDays(): DayConfig[] {
-  return DAY_LABELS_FULL.map(() => ({
-    available: true,
-    timeSlot: 'morning' as TimeSlot,
-    duration: 60,
-  }));
+  return DAY_LABELS_FULL.map((_, i) => {
+    // Defaults: Mon/Wed/Fri morning, Tue/Thu evening, Sat/Sun rest
+    if (i <= 4) {
+      return {
+        available: true,
+        slots: [{ timeSlot: (i % 2 === 0 ? 'morning' : 'evening') as TimeSlot, duration: 60 }],
+      };
+    }
+    return { available: false, slots: [] };
+  });
 }
 
 export default function Schedule() {
@@ -32,31 +41,96 @@ export default function Schedule() {
 
   const [days, setDays] = useState<DayConfig[]>(createDefaultDays);
 
-  function updateDay(index: number, updates: Partial<DayConfig>) {
+  function toggleDay(index: number) {
     setDays((prev) =>
-      prev.map((day, i) => (i === index ? { ...day, ...updates } : day))
+      prev.map((day, i) => {
+        if (i !== index) return day;
+        if (day.available) {
+          return { available: false, slots: [] };
+        }
+        return { available: true, slots: [{ timeSlot: 'morning', duration: 60 }] };
+      })
     );
+  }
+
+  function addSlot(dayIndex: number) {
+    setDays((prev) =>
+      prev.map((day, i) => {
+        if (i !== dayIndex) return day;
+        const usedSlots = day.slots.map((s) => s.timeSlot);
+        const nextSlot = TIME_SLOTS.find((s) => !usedSlots.includes(s));
+        if (!nextSlot) return day;
+        return { ...day, slots: [...day.slots, { timeSlot: nextSlot, duration: 60 }] };
+      })
+    );
+  }
+
+  function removeSlot(dayIndex: number, slotIndex: number) {
+    setDays((prev) =>
+      prev.map((day, i) => {
+        if (i !== dayIndex) return day;
+        const newSlots = day.slots.filter((_, si) => si !== slotIndex);
+        if (newSlots.length === 0) return { available: false, slots: [] };
+        return { ...day, slots: newSlots };
+      })
+    );
+  }
+
+  function updateSlotTime(dayIndex: number, slotIndex: number, timeSlot: TimeSlot) {
+    setDays((prev) =>
+      prev.map((day, i) => {
+        if (i !== dayIndex) return day;
+        const newSlots = [...day.slots];
+        newSlots[slotIndex] = { ...newSlots[slotIndex], timeSlot };
+        return { ...day, slots: newSlots };
+      })
+    );
+  }
+
+  function updateSlotDuration(dayIndex: number, slotIndex: number, duration: number) {
+    setDays((prev) =>
+      prev.map((day, i) => {
+        if (i !== dayIndex) return day;
+        const newSlots = [...day.slots];
+        newSlots[slotIndex] = { ...newSlots[slotIndex], duration };
+        return { ...day, slots: newSlots };
+      })
+    );
+  }
+
+  function getAvailableTimeSlots(dayIndex: number, currentSlotIndex: number): TimeSlot[] {
+    const usedSlots = days[dayIndex].slots
+      .filter((_, i) => i !== currentSlotIndex)
+      .map((s) => s.timeSlot);
+    return TIME_SLOTS.filter((s) => !usedSlots.includes(s));
   }
 
   function handleFinish() {
     if (!activeProfileId) return;
 
-    // Save each day's schedule preference
+    // Clear all slots first
+    for (let i = 0; i < days.length; i++) {
+      for (const slot of TIME_SLOTS) {
+        upsertSchedulePreference(activeProfileId, i, slot, false, 60);
+      }
+    }
+
+    // Save active slots
     for (let i = 0; i < days.length; i++) {
       const day = days[i];
-      upsertSchedulePreference(
-        activeProfileId,
-        i, // 0=Monday, 6=Sunday
-        day.timeSlot,
-        day.available,
-        day.duration
-      );
+      if (day.available) {
+        for (const slot of day.slots) {
+          upsertSchedulePreference(activeProfileId, i, slot.timeSlot, true, slot.duration);
+        }
+      }
     }
 
     // Mark onboarding as complete
     updateProfile(activeProfileId, { onboarding_complete: 1 });
     navigate('/');
   }
+
+  const activeDays = days.filter((d) => d.available).length;
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -79,22 +153,24 @@ export default function Schedule() {
           </div>
           <h1 className="text-2xl font-bold">Your Weekly Schedule</h1>
           <p className="text-muted text-center">
-            Set your availability for each day. We will schedule workouts
-            around your preferred times.
+            Set your available training windows. You can have multiple time slots
+            per day (e.g., morning swim + evening strength).
           </p>
         </div>
 
         {/* Day rows */}
-        <div className="flex flex-col gap-3 mb-8">
+        <div className="flex flex-col gap-3 mb-4">
           {DAY_LABELS_FULL.map((dayName, index) => {
             const day = days[index];
+            const canAddSlot = day.available && day.slots.length < 3;
+
             return (
               <Card key={dayName} className="!mx-0">
                 {/* Day name + available toggle */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-2">
                   <span className="font-semibold text-text">{dayName}</span>
                   <button
-                    onClick={() => updateDay(index, { available: !day.available })}
+                    onClick={() => toggleDay(index)}
                     className={`cursor-pointer relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
                       day.available ? 'bg-primary' : 'bg-white/10'
                     }`}
@@ -108,64 +184,79 @@ export default function Schedule() {
                 </div>
 
                 {day.available && (
-                  <div className="flex flex-col gap-3">
-                    {/* Time slot selector */}
-                    <div>
-                      <p className="text-xs text-muted mb-1.5">Time Slot</p>
-                      <div className="flex gap-2">
-                        {TIME_SLOTS.map((slot) => (
-                          <button
-                            key={slot}
-                            onClick={() => updateDay(index, { timeSlot: slot })}
-                            className={`cursor-pointer flex-1 rounded-lg px-2 py-1.5 text-xs font-medium border transition-colors ${
-                              day.timeSlot === slot
-                                ? 'border-primary bg-primary/20 text-text'
-                                : 'border-white/10 bg-white/5 text-muted hover:text-text'
-                            }`}
-                          >
-                            {TIME_SLOT_LABELS[slot]}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
+                  <div className="flex flex-col gap-2">
+                    {day.slots.map((slot, slotIdx) => {
+                      const availableSlots = getAvailableTimeSlots(index, slotIdx);
+                      return (
+                        <div
+                          key={slotIdx}
+                          className="flex items-center gap-2 rounded-xl bg-white/5 border border-white/10 px-3 py-2"
+                        >
+                          {/* Time slot chips */}
+                          <div className="flex gap-1 flex-1">
+                            {availableSlots.map((ts) => (
+                              <button
+                                key={ts}
+                                onClick={() => updateSlotTime(index, slotIdx, ts)}
+                                className={`cursor-pointer px-2.5 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                  slot.timeSlot === ts
+                                    ? 'border-primary bg-primary/20 text-text border'
+                                    : 'border-white/10 bg-white/5 text-muted hover:text-text border'
+                                }`}
+                              >
+                                {TIME_SLOT_LABELS[ts]}
+                              </button>
+                            ))}
+                          </div>
 
-                    {/* Duration selector */}
-                    <div>
-                      <p className="text-xs text-muted mb-1.5">Max Duration</p>
-                      <div className="flex gap-2 items-center">
-                        {DURATION_OPTIONS.map((mins) => (
+                          {/* Duration selector */}
+                          <div className="flex gap-1">
+                            {DURATION_OPTIONS.map((mins) => (
+                              <button
+                                key={mins}
+                                onClick={() => updateSlotDuration(index, slotIdx, mins)}
+                                className={`cursor-pointer px-2 py-1 rounded-lg text-xs font-medium transition-colors ${
+                                  slot.duration === mins
+                                    ? 'border-primary bg-primary/20 text-text border'
+                                    : 'border-white/10 bg-white/5 text-muted hover:text-text border'
+                                }`}
+                              >
+                                {mins}m
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* Remove button */}
                           <button
-                            key={mins}
-                            onClick={() => updateDay(index, { duration: mins })}
-                            className={`cursor-pointer flex-1 rounded-lg px-2 py-1.5 text-xs font-medium border transition-colors ${
-                              day.duration === mins
-                                ? 'border-primary bg-primary/20 text-text'
-                                : 'border-white/10 bg-white/5 text-muted hover:text-text'
-                            }`}
+                            onClick={() => removeSlot(index, slotIdx)}
+                            className="cursor-pointer p-1 text-muted hover:text-danger transition-colors"
                           >
-                            {mins}m
+                            <X className="h-4 w-4" />
                           </button>
-                        ))}
-                        <input
-                          type="number"
-                          min="10"
-                          max="480"
-                          value={!DURATION_OPTIONS.includes(day.duration) ? day.duration : ''}
-                          placeholder="Other"
-                          onChange={(e) => {
-                            const v = Number(e.target.value);
-                            if (v > 0) updateDay(index, { duration: v });
-                          }}
-                          className="w-16 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-text focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
-                        />
-                      </div>
-                    </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Add slot button */}
+                    {canAddSlot && (
+                      <button
+                        onClick={() => addSlot(index)}
+                        className="cursor-pointer flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors py-1"
+                      >
+                        <Plus className="h-3.5 w-3.5" />
+                        Add time slot
+                      </button>
+                    )}
                   </div>
                 )}
               </Card>
             );
           })}
         </div>
+
+        <p className="text-muted text-sm text-center mb-8">
+          {activeDays} training day{activeDays !== 1 ? 's' : ''} per week
+        </p>
 
         {/* Finish */}
         <div className="mt-auto">
@@ -174,6 +265,7 @@ export default function Schedule() {
             variant="primary"
             size="lg"
             onClick={handleFinish}
+            disabled={activeDays === 0}
           />
         </div>
       </div>

@@ -217,7 +217,24 @@ export default function WorkoutDetailPage() {
       {workout.details && (
         <Card>
           <h3 className="text-base font-semibold text-text mb-2">Details</h3>
-          <p className="text-sm text-muted whitespace-pre-wrap">{workout.details}</p>
+          <ul className="list-disc list-inside space-y-1">
+            {(workout.details.includes('\n')
+              ? workout.details.split('\n')
+              : workout.details.split('. ').map((s, i, arr) => (i < arr.length - 1 ? s + '.' : s))
+            )
+              .filter((line) => line.trim())
+              .map((line, i) => (
+                <li key={i} className="text-sm text-muted">{line.trim()}</li>
+              ))}
+          </ul>
+        </Card>
+      )}
+
+      {/* Why this workout? */}
+      {workout.why && (
+        <Card>
+          <h3 className="text-base font-semibold text-text mb-2">Why this workout?</h3>
+          <p className="text-sm text-muted">{workout.why}</p>
         </Card>
       )}
 

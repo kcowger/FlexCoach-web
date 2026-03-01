@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { Workout, TrainingBlock, GeneratedPlan } from '@/types';
+import type { Workout, GeneratedPlan } from '@/types';
 import {
   getTodayWorkouts,
   getWeekWorkouts,
@@ -7,25 +7,21 @@ import {
   updateWorkoutNotes as repoUpdateNotes,
   updateWorkoutDetails as repoUpdateDetails,
   updateWorkoutPostData as repoUpdatePostData,
-  getCurrentBlock,
 } from '@/storage/repository';
-import { generateWeekPlan, generateBlockOutline } from '@/services/planGenerator';
+import { generateWeekPlan } from '@/services/planGenerator';
 import { getTodayISO, getWeekStartISO } from '@/utils/date';
 
 interface WorkoutStore {
   todayWorkouts: Workout[];
   weekWorkouts: Workout[];
-  currentBlock: TrainingBlock | null;
   isGenerating: boolean;
   generationError: string | null;
 
-  loadToday: (pid: string) => void;
+  loadToday: (pid: string, date?: string) => void;
   loadWeek: (pid: string, weekStart?: string) => void;
-  loadCurrentBlock: (pid: string) => void;
   markComplete: (pid: string, workoutId: number) => void;
   markSkipped: (pid: string, workoutId: number, reason: string) => void;
   updateNotes: (pid: string, workoutId: number, notes: string) => void;
-  generateBlock: (pid: string) => Promise<void>;
   generateWeek: (pid: string, weekStart?: string) => Promise<GeneratedPlan>;
   applyWorkoutUpdate: (pid: string, workoutId: number, changes: Record<string, unknown>) => void;
   updatePostWorkoutData: (pid: string, workoutId: number, rpe: number, actualDuration: number) => void;
@@ -34,12 +30,11 @@ interface WorkoutStore {
 export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
   todayWorkouts: [],
   weekWorkouts: [],
-  currentBlock: null,
   isGenerating: false,
   generationError: null,
 
-  loadToday: (pid) => {
-    const workouts = getTodayWorkouts(pid, getTodayISO());
+  loadToday: (pid, date) => {
+    const workouts = getTodayWorkouts(pid, date || getTodayISO());
     set({ todayWorkouts: workouts });
   },
 
@@ -47,11 +42,6 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
     const ws = weekStart || getWeekStartISO();
     const workouts = getWeekWorkouts(pid, ws);
     set({ weekWorkouts: workouts });
-  },
-
-  loadCurrentBlock: (pid) => {
-    const block = getCurrentBlock(pid);
-    set({ currentBlock: block });
   },
 
   markComplete: (pid, workoutId) => {
@@ -69,21 +59,6 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
   updateNotes: (pid, workoutId, notes) => {
     repoUpdateNotes(pid, workoutId, notes);
     get().loadToday(pid);
-  },
-
-  generateBlock: async (pid) => {
-    set({ isGenerating: true, generationError: null });
-    try {
-      await generateBlockOutline(pid);
-      const block = getCurrentBlock(pid);
-      set({ currentBlock: block });
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : 'Block generation failed';
-      set({ generationError: msg });
-      throw error;
-    } finally {
-      set({ isGenerating: false });
-    }
   },
 
   generateWeek: async (pid, weekStart) => {

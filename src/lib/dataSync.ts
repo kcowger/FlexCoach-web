@@ -4,7 +4,6 @@ import type {
   UserProfile,
   SchedulePreference,
   TrainingEvent,
-  TrainingBlock,
   WorkoutPlan,
   Workout,
   ChatMessage,
@@ -29,7 +28,7 @@ interface ProfileDoc {
   profile: UserProfile;
   schedule: SchedulePreference[];
   events: TrainingEvent[];
-  blocks: TrainingBlock[];
+  blocks: unknown[];
   plans: WorkoutPlan[];
   benchmarks: Benchmarks;
 }
@@ -235,19 +234,6 @@ export function setEvents(pid: string, events: TrainingEvent[]): void {
   const c = requireCache();
   if (!c.profiles[pid]) return;
   c.profiles[pid].events = events;
-  persistProfile(pid);
-}
-
-// ── Blocks ───────────────────────────────────────────────────────────
-
-export function getBlocks(pid: string): TrainingBlock[] {
-  return requireCache().profiles[pid]?.blocks || [];
-}
-
-export function setBlocks(pid: string, blocks: TrainingBlock[]): void {
-  const c = requireCache();
-  if (!c.profiles[pid]) return;
-  c.profiles[pid].blocks = blocks;
   persistProfile(pid);
 }
 

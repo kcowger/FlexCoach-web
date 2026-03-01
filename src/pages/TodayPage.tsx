@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { RefreshCw, PartyPopper, AlertCircle } from 'lucide-react';
+import { PartyPopper, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useWorkoutStore } from '@/stores/useWorkoutStore';
 import { useMoodStore } from '@/stores/useMoodStore';
@@ -9,7 +9,18 @@ import WorkoutCard from '@/components/workout/WorkoutCard';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
-import { formatDate, getTodayISO } from '@/utils/date';
+import {
+  formatDate,
+  getTodayISO,
+  getWeekStartISO,
+  addDays,
+  formatDayOfWeek,
+  getDayNumber,
+} from '@/utils/date';
+import type { Workout, Discipline, TimeSlot } from '@/types';
+
+const DISCIPLINES: Discipline[] = ['swim', 'bike', 'run', 'strength', 'rest', 'recovery', 'brick'];
+const TIME_SLOTS: TimeSlot[] = ['morning', 'midday', 'evening'];
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -18,20 +29,21 @@ function getGreeting(): string {
   return 'Good evening';
 }
 
+const inputClasses =
+  'bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all';
+
 export default function TodayPage() {
   const navigate = useNavigate();
   const pid = useAppStore((s) => s.activeProfileId)!;
   const {
     todayWorkouts,
-    currentBlock,
     isGenerating,
     generationError,
     loadToday,
-    loadCurrentBlock,
-    generateBlock,
     generateWeek,
     markComplete,
     markSkipped,
+    applyWorkoutUpdate,
   } = useWorkoutStore();
 
   const { todayMood, loadTodayMood, logMood } = useMoodStore();
@@ -39,16 +51,25 @@ export default function TodayPage() {
   const [skipModal, setSkipModal] = useState<{ workoutId: number } | null>(null);
   const [skipReason, setSkipReason] = useState('');
 
-  useEffect(() => {
-    loadToday(pid);
-    loadCurrentBlock(pid);
-    loadTodayMood(pid);
-  }, [pid, loadToday, loadCurrentBlock, loadTodayMood]);
+  // Day navigation
+  const today = getTodayISO();
+  const [selectedDate, setSelectedDate] = useState(today);
+  const weekStart = getWeekStartISO(new Date(selectedDate + 'T00:00:00'));
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const isToday = selectedDate === today;
 
-  function handleRefresh() {
-    loadToday(pid);
-    loadCurrentBlock(pid);
-  }
+  // Customize modal
+  const [customizeWorkout, setCustomizeWorkout] = useState<Workout | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDiscipline, setEditDiscipline] = useState<Discipline>('strength');
+  const [editDuration, setEditDuration] = useState('60');
+  const [editTimeSlot, setEditTimeSlot] = useState<TimeSlot>('morning');
+  const [editDetails, setEditDetails] = useState('');
+
+  useEffect(() => {
+    loadToday(pid, selectedDate);
+    loadTodayMood(pid);
+  }, [pid, selectedDate, loadToday, loadTodayMood]);
 
   function handleComplete(workoutId: number) {
     markComplete(pid, workoutId);
@@ -61,27 +82,40 @@ export default function TodayPage() {
     setSkipReason('');
   }
 
-  async function handleGenerateBlock() {
+  async function handleGenerate() {
     try {
-      await generateBlock(pid);
+      await generateWeek(pid);
+      loadToday(pid, selectedDate);
     } catch {
       // Error is stored in generationError
     }
   }
 
-  async function handleGenerateWeek() {
-    try {
-      await generateWeek(pid);
-    } catch {
-      // Error is stored in generationError
-    }
+  function openCustomize(workout: Workout) {
+    setCustomizeWorkout(workout);
+    setEditTitle(workout.title);
+    setEditDiscipline(workout.discipline);
+    setEditDuration(String(workout.duration_minutes));
+    setEditTimeSlot(workout.time_slot);
+    setEditDetails(workout.details);
+  }
+
+  function saveCustomize() {
+    if (!customizeWorkout) return;
+    applyWorkoutUpdate(pid, customizeWorkout.id, {
+      title: editTitle,
+      discipline: editDiscipline,
+      durationMinutes: parseInt(editDuration, 10) || 60,
+      timeSlot: editTimeSlot,
+      details: editDetails,
+    });
+    setCustomizeWorkout(null);
+    loadToday(pid, selectedDate);
   }
 
   const allCompleted =
     todayWorkouts.length > 0 &&
     todayWorkouts.every((w) => w.status === 'completed');
-
-  const today = getTodayISO();
 
   return (
     <div className="bg-transparent text-text min-h-full">
@@ -91,24 +125,54 @@ export default function TodayPage() {
       />
 
       {/* Header */}
-      <div className="flex items-center justify-between px-6 pt-6 pb-4">
-        <div>
+      <div className="px-6 pt-6 pb-2">
+        {isToday && (
           <h1 className="text-xl font-bold gradient-text">{getGreeting()}</h1>
-          <p className="text-sm text-muted">{formatDate(today)}</p>
-        </div>
-        <button
-          onClick={handleRefresh}
-          className="cursor-pointer rounded-xl glass p-2.5 text-muted hover:text-text transition-all duration-200"
-          title="Refresh"
-        >
-          <RefreshCw className="h-5 w-5" />
-        </button>
+        )}
+        <p className={`text-sm text-muted ${isToday ? 'mt-1' : 'mt-0'}`}>
+          {formatDate(selectedDate)}
+        </p>
+      </div>
+
+      {/* Day navigation strip */}
+      <div className="flex px-4 mb-3">
+        {weekDays.map((date) => {
+          const isSelected = date === selectedDate;
+          const isTodayDate = date === today;
+          return (
+            <button
+              key={date}
+              onClick={() => setSelectedDate(date)}
+              className="cursor-pointer flex-1 flex flex-col items-center py-2"
+            >
+              <span
+                className={`text-xs font-semibold mb-1 ${
+                  isSelected ? 'text-primary' : 'text-muted'
+                }`}
+              >
+                {formatDayOfWeek(date)}
+              </span>
+              <span
+                className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold ${
+                  isSelected
+                    ? 'bg-primary text-white'
+                    : isTodayDate
+                      ? 'border-2 border-primary text-primary'
+                      : 'text-text'
+                }`}
+              >
+                {getDayNumber(date)}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* Daily Mood Check-in */}
       {!todayMood ? (
         <MoodCheckIn
           title="How are you feeling today?"
+          collapsible
           onSubmit={(data) =>
             logMood(pid, data.mood, data.energy, data.sleep, 'daily', undefined, {
               sleepHours: data.sleepHours,
@@ -137,42 +201,6 @@ export default function TodayPage() {
         </div>
       )}
 
-      {/* No Block State */}
-      {!currentBlock && !isGenerating && (
-        <div className="flex flex-col items-center gap-4 px-6 py-12 text-center animate-fade-in">
-          <p className="text-muted">
-            No training block found. Generate a training block to get started.
-          </p>
-          <div className="w-full max-w-xs">
-            <Button
-              title="Generate Training Block"
-              variant="primary"
-              size="lg"
-              onClick={handleGenerateBlock}
-              loading={isGenerating}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Block Exists but No Today Workouts */}
-      {currentBlock && todayWorkouts.length === 0 && !isGenerating && (
-        <div className="flex flex-col items-center gap-4 px-6 py-12 text-center animate-fade-in">
-          <p className="text-muted">
-            No workouts scheduled for today. Generate this week's plan.
-          </p>
-          <div className="w-full max-w-xs">
-            <Button
-              title="Generate This Week"
-              variant="primary"
-              size="lg"
-              onClick={handleGenerateWeek}
-              loading={isGenerating}
-            />
-          </div>
-        </div>
-      )}
-
       {/* All Completed Congrats */}
       {allCompleted && (
         <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-success/10 border border-success/20 px-4 py-4 animate-fade-in">
@@ -187,17 +215,41 @@ export default function TodayPage() {
       )}
 
       {/* Workout List */}
-      <div className="pb-4">
-        {todayWorkouts.map((workout) => (
-          <WorkoutCard
-            key={workout.id}
-            workout={workout}
-            onClick={() => navigate(`/workout/${workout.id}`)}
-            onComplete={() => handleComplete(workout.id)}
-            onSkip={() => setSkipModal({ workoutId: workout.id })}
-          />
-        ))}
-      </div>
+      {todayWorkouts.length > 0 ? (
+        <div className="pb-4">
+          {todayWorkouts.map((workout) => (
+            <WorkoutCard
+              key={workout.id}
+              workout={workout}
+              onClick={() => navigate(`/workout/${workout.id}`)}
+              onComplete={() => handleComplete(workout.id)}
+              onCustomize={() => openCustomize(workout)}
+              onSkip={() => setSkipModal({ workoutId: workout.id })}
+            />
+          ))}
+        </div>
+      ) : (
+        !isGenerating && (
+          <div className="flex flex-col items-center gap-4 px-6 py-12 text-center animate-fade-in">
+            <p className="text-muted">
+              {isToday
+                ? 'No workouts for today. Generate your training plan to get started.'
+                : 'No workouts scheduled for this day.'}
+            </p>
+            {isToday && (
+              <div className="w-full max-w-xs">
+                <Button
+                  title="Generate Workouts"
+                  variant="primary"
+                  size="lg"
+                  onClick={handleGenerate}
+                  loading={isGenerating}
+                />
+              </div>
+            )}
+          </div>
+        )
+      )}
 
       {/* Skip Reason Modal */}
       <Modal
@@ -220,7 +272,7 @@ export default function TodayPage() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSkipConfirm();
             }}
-            className="bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
+            className={inputClasses}
             autoFocus
           />
           <div className="flex gap-3 justify-end">
@@ -238,6 +290,103 @@ export default function TodayPage() {
               variant="danger"
               size="sm"
               onClick={handleSkipConfirm}
+            />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Customize Modal */}
+      <Modal
+        open={!!customizeWorkout}
+        onClose={() => setCustomizeWorkout(null)}
+        title="Customize Workout"
+      >
+        <div className="flex flex-col gap-4">
+          {/* Title */}
+          <div>
+            <label className="text-xs text-muted mb-1 block">Title</label>
+            <input
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              className={inputClasses}
+            />
+          </div>
+
+          {/* Discipline */}
+          <div>
+            <label className="text-xs text-muted mb-1 block">Discipline</label>
+            <div className="flex flex-wrap gap-2">
+              {DISCIPLINES.map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setEditDiscipline(d)}
+                  className={`cursor-pointer px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors ${
+                    editDiscipline === d
+                      ? 'bg-primary text-white'
+                      : 'bg-white/5 border border-white/10 text-muted hover:text-text'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Duration */}
+          <div>
+            <label className="text-xs text-muted mb-1 block">Duration (minutes)</label>
+            <input
+              type="number"
+              value={editDuration}
+              onChange={(e) => setEditDuration(e.target.value)}
+              className={inputClasses}
+            />
+          </div>
+
+          {/* Time Slot */}
+          <div>
+            <label className="text-xs text-muted mb-1 block">Time Slot</label>
+            <div className="flex gap-2">
+              {TIME_SLOTS.map((ts) => (
+                <button
+                  key={ts}
+                  onClick={() => setEditTimeSlot(ts)}
+                  className={`cursor-pointer flex-1 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${
+                    editTimeSlot === ts
+                      ? 'bg-primary text-white'
+                      : 'bg-white/5 border border-white/10 text-muted hover:text-text'
+                  }`}
+                >
+                  {ts}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Details */}
+          <div>
+            <label className="text-xs text-muted mb-1 block">Details</label>
+            <textarea
+              value={editDetails}
+              onChange={(e) => setEditDetails(e.target.value)}
+              rows={4}
+              className={`${inputClasses} resize-none`}
+            />
+          </div>
+
+          <div className="flex gap-3 justify-end pt-2">
+            <Button
+              title="Cancel"
+              variant="outline"
+              size="sm"
+              onClick={() => setCustomizeWorkout(null)}
+            />
+            <Button
+              title="Save Changes"
+              variant="primary"
+              size="sm"
+              onClick={saveCustomize}
             />
           </div>
         </div>

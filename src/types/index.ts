@@ -4,8 +4,6 @@ export type TimeSlot = 'morning' | 'midday' | 'evening';
 
 export type WorkoutStatus = 'pending' | 'completed' | 'skipped';
 
-export type TrainingPhase = 'base' | 'build' | 'peak' | 'taper' | 'recovery';
-
 export type EventType =
   | 'sprint_tri'
   | 'olympic_tri'
@@ -68,17 +66,6 @@ export interface TrainingEvent {
   created_at: string;
 }
 
-export interface TrainingBlock {
-  id: number;
-  start_date: string;
-  end_date: string;
-  phase: TrainingPhase;
-  focus: string;
-  target_hours: number;
-  notes: string;
-  created_at: string;
-}
-
 export interface WorkoutPlan {
   id: number;
   week_number: number;
@@ -104,6 +91,7 @@ export interface Workout {
   notes: string;
   rpe?: number;             // 1-10 post-workout perceived exertion
   actual_duration?: number; // minutes actually done
+  why?: string;             // explanation of why this workout exists
 }
 
 export interface ChatMessage {
@@ -157,6 +145,7 @@ export interface GeneratedWorkout {
   title: string;
   durationMinutes: number;
   details: string;
+  why?: string;
   structuredData?: Record<string, unknown>;
 }
 
@@ -164,17 +153,6 @@ export interface GeneratedPlan {
   weekSummary: string;
   totalHours: number;
   workouts: GeneratedWorkout[];
-}
-
-export interface GeneratedBlock {
-  phases: Array<{
-    phase: TrainingPhase;
-    startDate: string;
-    endDate: string;
-    focus: string;
-    targetHoursPerWeek: number;
-    notes: string;
-  }>;
 }
 
 export interface PlanUpdate {

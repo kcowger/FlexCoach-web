@@ -5,8 +5,6 @@ import {
   setSchedule,
   getEvents as dsGetEvents,
   setEvents as dsSetEvents,
-  getBlocks,
-  setBlocks,
   getPlans,
   setPlans,
   getWorkouts,
@@ -24,7 +22,6 @@ import type {
   UserProfile,
   SchedulePreference,
   TrainingEvent,
-  TrainingBlock,
   WorkoutPlan,
   Workout,
   ChatMessage,
@@ -114,31 +111,6 @@ export function deleteEvent(pid: string, id: number): void {
   dsSetEvents(pid, events);
 }
 
-// ── Training Blocks ───────────────────────────────────────────────────
-
-export function getTrainingBlocks(pid: string): TrainingBlock[] {
-  return getBlocks(pid);
-}
-
-export function getCurrentBlock(pid: string): TrainingBlock | null {
-  const today = getTodayISO();
-  return getTrainingBlocks(pid).find(
-    (b) => b.start_date <= today && b.end_date >= today
-  ) || null;
-}
-
-export function saveTrainingBlocks(
-  pid: string,
-  blocks: Omit<TrainingBlock, 'id' | 'created_at'>[]
-): void {
-  const data = blocks.map((b) => ({
-    ...b,
-    id: nextId(),
-    created_at: new Date().toISOString(),
-  }));
-  setBlocks(pid, data);
-}
-
 // ── Workout Plans ─────────────────────────────────────────────────────
 
 export function getWeekPlan(pid: string, weekStartDate: string): WorkoutPlan | null {
@@ -202,6 +174,7 @@ export function saveWorkouts(
     title: string;
     duration_minutes: number;
     details: string;
+    why?: string;
     structured_data?: string;
   }>
 ): void {
@@ -224,6 +197,7 @@ export function saveWorkouts(
       skip_reason: '',
       completed_at: null,
       notes: '',
+      why: w.why || '',
     };
     if (existingIdx >= 0) {
       all[existingIdx] = workout;
@@ -276,7 +250,7 @@ export function updateWorkoutDetails(
   const idx = all.findIndex((w) => w.id === id);
   if (idx < 0) return;
 
-  const allowed = ['discipline', 'title', 'duration_minutes', 'details', 'time_slot'] as const;
+  const allowed = ['discipline', 'title', 'duration_minutes', 'details', 'time_slot', 'why'] as const;
   for (const key of allowed) {
     if (key in updates) {
       (all[idx] as unknown as Record<string, unknown>)[key] = updates[key];

@@ -1,6 +1,6 @@
-import type { GeneratedPlan, GeneratedBlock } from '@/types';
+import type { GeneratedPlan } from '@/types';
 import { createMessage } from './claude';
-import { buildBlockOutlinePrompt, buildPlanGenerationPrompt } from './prompts';
+import { buildPlanGenerationPrompt } from './prompts';
 import {
   getProfile,
   getAvailableSlots,
@@ -8,8 +8,6 @@ import {
   getRecentWorkouts,
   getRecentMoodEntries,
   getBenchmarks,
-  getCurrentBlock,
-  saveTrainingBlocks,
   saveWeekPlan,
   saveWorkouts,
 } from '@/storage/repository';
@@ -30,36 +28,6 @@ function parseJsonFromResponse(text: string): unknown {
   }
 }
 
-export async function generateBlockOutline(pid: string): Promise<void> {
-  const profile = getProfile(pid);
-  const events = getUpcomingEvents(pid);
-  const schedule = getAvailableSlots(pid);
-
-  const systemPrompt = buildBlockOutlinePrompt(profile, events, schedule);
-  const response = await createMessage(
-    systemPrompt,
-    [{ role: 'user', content: 'Generate my training block periodization outline starting from today.' }],
-    2048
-  );
-
-  const blockData = parseJsonFromResponse(response) as GeneratedBlock;
-
-  if (!blockData?.phases || !Array.isArray(blockData.phases)) {
-    throw new Error('Invalid block outline format from AI response');
-  }
-
-  const blocks = blockData.phases.map((phase) => ({
-    start_date: phase.startDate,
-    end_date: phase.endDate,
-    phase: phase.phase,
-    focus: phase.focus,
-    target_hours: phase.targetHoursPerWeek,
-    notes: phase.notes,
-  }));
-
-  saveTrainingBlocks(pid, blocks);
-}
-
 export async function generateWeekPlan(
   pid: string,
   weekStartDate?: string
@@ -68,7 +36,6 @@ export async function generateWeekPlan(
   const profile = getProfile(pid);
   const schedule = getAvailableSlots(pid);
   const events = getUpcomingEvents(pid);
-  const currentBlock = getCurrentBlock(pid);
   const recentWorkouts = getRecentWorkouts(pid, 14);
   const recentMood = getRecentMoodEntries(pid, 14);
   const benchmarks = getBenchmarks(pid);
@@ -78,7 +45,6 @@ export async function generateWeekPlan(
     profile,
     schedule,
     events,
-    currentBlock,
     recentWorkouts,
     weekNumber,
     recentMood,
@@ -107,7 +73,7 @@ export async function generateWeekPlan(
     weekNumber,
     weekStart,
     JSON.stringify(planData),
-    JSON.stringify({ weekNumber, weekStart, blockPhase: currentBlock?.phase })
+    JSON.stringify({ weekNumber, weekStart })
   );
 
   const workoutsToSave = planData.workouts.map((w) => ({
@@ -117,6 +83,7 @@ export async function generateWeekPlan(
     title: w.title,
     duration_minutes: w.durationMinutes,
     details: w.details,
+    why: w.why || '',
     structured_data: w.structuredData ? JSON.stringify(w.structuredData) : '',
   }));
 

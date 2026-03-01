@@ -46,3 +46,13 @@ export function addDays(iso: string, days: number): string {
   d.setDate(d.getDate() + days);
   return d.toISOString().split('T')[0];
 }
+
+export function formatDayOfWeek(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('en-US', { weekday: 'short' });
+}
+
+export function getDayNumber(iso: string): string {
+  const d = new Date(iso + 'T00:00:00');
+  return String(d.getDate());
+}

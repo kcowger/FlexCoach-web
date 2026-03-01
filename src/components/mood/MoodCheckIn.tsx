@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ChevronDown } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface MoodCheckInData {
@@ -13,6 +14,7 @@ interface MoodCheckInData {
 
 interface MoodCheckInProps {
   title?: string;
+  collapsible?: boolean;
   onSubmit: (data: MoodCheckInData) => void;
 }
 
@@ -63,6 +65,7 @@ function RatingRow({
 
 export default function MoodCheckIn({
   title = 'How are you feeling today?',
+  collapsible = false,
   onSubmit,
 }: MoodCheckInProps) {
   const [mood, setMood] = useState(0);
@@ -73,6 +76,8 @@ export default function MoodCheckIn({
   const [showMore, setShowMore] = useState(false);
   const [restingHr, setRestingHr] = useState('');
   const [weight, setWeight] = useState('');
+  const [expanded, setExpanded] = useState(!collapsible);
+  const [loading, setLoading] = useState(false);
 
   const allSet = mood > 0 && energy > 0 && sleep > 0;
 
@@ -82,15 +87,42 @@ export default function MoodCheckIn({
     if (sleepHours) data.sleepHours = parseFloat(sleepHours);
     if (restingHr) data.restingHr = parseInt(restingHr, 10);
     if (weight) data.weight = parseFloat(weight);
-    onSubmit(data);
+    setLoading(true);
+    try {
+      onSubmit(data);
+    } finally {
+      setLoading(false);
+    }
   }
 
   const inputClasses =
     'bg-white/5 border border-white/10 text-text rounded-lg px-3 py-2 w-24 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all';
 
+  if (collapsible && !expanded) {
+    return (
+      <button
+        onClick={() => setExpanded(true)}
+        className="cursor-pointer glass rounded-2xl px-5 py-3 mx-4 mb-3 flex items-center justify-between w-[calc(100%-2rem)] animate-fade-in hover:bg-white/[0.06] transition-all duration-200"
+      >
+        <span className="text-sm text-muted">{title}</span>
+        <ChevronDown className="h-4 w-4 text-muted" />
+      </button>
+    );
+  }
+
   return (
     <div className="glass rounded-2xl p-5 mx-4 mb-3 animate-fade-in">
-      <h3 className="text-sm font-semibold mb-4">{title}</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold">{title}</h3>
+        {collapsible && (
+          <button
+            onClick={() => setExpanded(false)}
+            className="cursor-pointer text-xs text-muted hover:text-text transition-colors"
+          >
+            Collapse
+          </button>
+        )}
+      </div>
       <div className="flex flex-col gap-3">
         <RatingRow label="Mood" value={mood} onChange={setMood} required />
         <RatingRow label="Energy" value={energy} onChange={setEnergy} required />
@@ -164,6 +196,7 @@ export default function MoodCheckIn({
           variant="primary"
           size="sm"
           disabled={!allSet}
+          loading={loading}
           onClick={handleSubmit}
         />
       </div>

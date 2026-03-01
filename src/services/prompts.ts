@@ -2,7 +2,6 @@ import type {
   UserProfile,
   SchedulePreference,
   TrainingEvent,
-  TrainingBlock,
   Workout,
   Equipment,
   Injury,
@@ -231,68 +230,12 @@ function formatRecentActivity(workouts: Workout[]): string {
   return summary;
 }
 
-function formatCurrentBlock(block: TrainingBlock | null): string {
-  if (!block) return 'No training block active. Use general fitness base building.';
-  return `Phase: ${block.phase.toUpperCase()} | Focus: ${block.focus} | Target: ${block.target_hours}h/week | ${block.start_date} to ${block.end_date}`;
-}
-
 // ── Plan Generation Prompt ────────────────────────────────────────────
-
-export function buildBlockOutlinePrompt(
-  profile: UserProfile,
-  events: TrainingEvent[],
-  schedule: SchedulePreference[]
-): string {
-  const injuryNote = formatInjuries(profile.injuries) !== 'None'
-    ? `\n  IMPORTANT: Account for these injuries in all programming. Include appropriate warm-up and prehab.`
-    : '';
-
-  return `You are FlexCoach, an expert fitness and endurance coach designing a multi-week training periodization plan.
-
-## Athlete Profile
-- Basics: ${formatBasics(profile)}
-- Experience: ${profile.experience_level}
-- Injuries: ${formatInjuries(profile.injuries)}${injuryNote}
-- Equipment: ${formatEquipment(profile.equipment)}
-- Weekly hours available: ${profile.weekly_hours_available}
-- Goals: ${profile.goals}
-
-## Upcoming Events
-${formatEvents(events)}
-
-## Training Principles
-- 80/20 polarized endurance: 80% Zone 1-2, 20% Zone 3-5
-- Progressive overload for strength
-- Recovery weeks every 3-4 weeks (volume reduced 30-40%)
-- If an event is registered, structure as: Base → Build → Peak → Taper
-- If no event, use rolling 4-week mesocycles (3 build + 1 recovery)
-
-## Available Schedule
-${formatSchedule(schedule)}
-
-## Output Format
-Return ONLY valid JSON with this structure:
-{
-  "phases": [
-    {
-      "phase": "base|build|peak|taper|recovery",
-      "startDate": "YYYY-MM-DD",
-      "endDate": "YYYY-MM-DD",
-      "focus": "Brief description of phase focus",
-      "targetHoursPerWeek": number,
-      "notes": "Key considerations for this phase"
-    }
-  ]
-}
-
-Cover up to 12 weeks from today, or to the event date plus 1 week post-event recovery if an event is registered.`;
-}
 
 export function buildPlanGenerationPrompt(
   profile: UserProfile,
   schedule: SchedulePreference[],
   events: TrainingEvent[],
-  currentBlock: TrainingBlock | null,
   recentWorkouts: Workout[],
   weekNumber: number,
   moodEntries: MoodEntry[] = [],
@@ -310,9 +253,6 @@ export function buildPlanGenerationPrompt(
 - Injuries: ${formatInjuries(profile.injuries)}${injuryInstructions}
 - Equipment: ${formatEquipment(profile.equipment)}
 - Travel mode: ${profile.travel_mode ? 'YES — use hotel/travel-friendly alternatives only' : 'No'}
-
-## Current Training Block
-${formatCurrentBlock(currentBlock)}
 
 ## Training Week: ${weekNumber}
 
@@ -357,6 +297,7 @@ Return ONLY valid JSON:
       "title": "Short descriptive title",
       "durationMinutes": number,
       "details": "SPECIFIC workout prescription. Include zones, distances, paces, intervals, sets, reps, rest periods. Start every session with warm-up including ACL prehab.",
+      "why": "1-2 sentences explaining how this workout supports the athlete's goals and fits the overall training plan.",
       "structuredData": {}
     }
   ]

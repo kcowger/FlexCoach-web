@@ -15,6 +15,9 @@ import {
   Plus,
   X,
   Trash2,
+  Eye,
+  EyeOff,
+  KeyRound,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useProfileStore } from '@/stores/useProfileStore';
@@ -28,6 +31,8 @@ import {
   updateBenchmarks,
   getWeightLog,
 } from '@/storage/repository';
+import { getApiKey, setApiKey as saveApiKey } from '@/lib/dataSync';
+import { createMessage } from '@/services/claude';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
@@ -117,6 +122,12 @@ export default function ProfilePage() {
   const [newInjuryType, setNewInjuryType] = useState('');
   const [newInjuryNotes, setNewInjuryNotes] = useState('');
 
+  // API key state
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [apiKeyVisible, setApiKeyVisible] = useState(false);
+  const [apiKeyTesting, setApiKeyTesting] = useState(false);
+  const [apiKeyMasked, setApiKeyMasked] = useState('');
+
   useEffect(() => {
     loadProfile(pid);
     loadSchedule(pid);
@@ -144,6 +155,11 @@ export default function ProfilePage() {
     }
     if (b.max_hr) setMaxHr(String(b.max_hr));
     setWeightLog(getWeightLog(pid, 30));
+    // Load API key mask
+    const key = getApiKey();
+    if (key) {
+      setApiKeyMasked('sk-ant-...' + key.slice(-4));
+    }
   }, [pid, loadProfile, loadSchedule, loadEvents, loadRecentMood]);
 
   // Sync local state when profile loads
@@ -323,6 +339,29 @@ export default function ProfilePage() {
   async function handleLogout() {
     await logout();
     navigate('/lock');
+  }
+
+  async function handleUpdateApiKey() {
+    const trimmed = apiKeyInput.trim();
+    if (!trimmed) return;
+    setApiKeyTesting(true);
+    saveApiKey(trimmed);
+    try {
+      await createMessage(
+        'You are a helpful assistant.',
+        [{ role: 'user', content: 'Say "ok" and nothing else.' }],
+        16
+      );
+      setApiKeyMasked('sk-ant-...' + trimmed.slice(-4));
+      setApiKeyInput('');
+    } catch {
+      saveApiKey(apiKeyMasked ? apiKeyMasked : '');
+      // Restore old key by reloading
+      const key = getApiKey();
+      setApiKeyMasked(key ? 'sk-ant-...' + key.slice(-4) : '');
+    } finally {
+      setApiKeyTesting(false);
+    }
   }
 
   if (!profile) {
@@ -875,7 +914,50 @@ export default function ProfilePage() {
         )}
       </Card>
 
-      {/* 8. Actions */}
+      {/* 8. Settings */}
+      <Card>
+        <div className="flex items-center gap-2 mb-4">
+          <KeyRound className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold text-text">API Key</h2>
+        </div>
+
+        <p className="text-xs text-muted mb-2">
+          Current: {apiKeyMasked || 'Not set'}
+        </p>
+
+        <div className="flex items-center gap-2 mb-3">
+          <div className="relative flex-1">
+            <input
+              type={apiKeyVisible ? 'text' : 'password'}
+              placeholder="sk-ant-..."
+              value={apiKeyInput}
+              onChange={(e) => setApiKeyInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleUpdateApiKey(); }}
+              autoCapitalize="off"
+              autoCorrect="off"
+              className={`${inputClasses} pr-10`}
+            />
+            <button
+              type="button"
+              onClick={() => setApiKeyVisible(!apiKeyVisible)}
+              className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-muted hover:text-text transition-colors"
+            >
+              {apiKeyVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+
+        <Button
+          title={apiKeyTesting ? 'Validating...' : 'Update Key'}
+          variant="primary"
+          size="sm"
+          onClick={handleUpdateApiKey}
+          loading={apiKeyTesting}
+          disabled={!apiKeyInput.trim()}
+        />
+      </Card>
+
+      {/* 9. Actions */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
           <Settings className="h-5 w-5 text-primary" />
