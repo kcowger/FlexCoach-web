@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { PartyPopper, AlertCircle } from 'lucide-react';
+import { PartyPopper, AlertCircle, MessageCircle, ChevronDown, Maximize2 } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useWorkoutStore } from '@/stores/useWorkoutStore';
 import { useMoodStore } from '@/stores/useMoodStore';
 import MoodCheckIn from '@/components/mood/MoodCheckIn';
 import WorkoutCard from '@/components/workout/WorkoutCard';
+import WeekVolumeSummary from '@/components/workout/WeekVolumeSummary';
+import CoachChat from '@/components/coach/CoachChat';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
@@ -17,7 +19,8 @@ import {
   formatDayOfWeek,
   getDayNumber,
 } from '@/utils/date';
-import type { Workout, Discipline, TimeSlot } from '@/types';
+import { hasDistance, defaultDistanceUnit } from '@/utils/distance';
+import type { Workout, Discipline, TimeSlot, DistanceUnit } from '@/types';
 
 const DISCIPLINES: Discipline[] = ['swim', 'bike', 'run', 'strength', 'rest', 'recovery', 'brick'];
 const TIME_SLOTS: TimeSlot[] = ['morning', 'midday', 'evening'];
@@ -37,9 +40,11 @@ export default function TodayPage() {
   const pid = useAppStore((s) => s.activeProfileId)!;
   const {
     todayWorkouts,
+    weekWorkouts,
     isGenerating,
     generationError,
     loadToday,
+    loadWeek,
     generateWeek,
     markComplete,
     markSkipped,
@@ -65,11 +70,17 @@ export default function TodayPage() {
   const [editDuration, setEditDuration] = useState('60');
   const [editTimeSlot, setEditTimeSlot] = useState<TimeSlot>('morning');
   const [editDetails, setEditDetails] = useState('');
+  const [editDistance, setEditDistance] = useState('');
+  const [editDistanceUnit, setEditDistanceUnit] = useState<DistanceUnit>('mi');
+
+  // Coach
+  const [coachExpanded, setCoachExpanded] = useState(false);
 
   useEffect(() => {
     loadToday(pid, selectedDate);
+    loadWeek(pid, weekStart);
     loadTodayMood(pid);
-  }, [pid, selectedDate, loadToday, loadTodayMood]);
+  }, [pid, selectedDate, weekStart, loadToday, loadWeek, loadTodayMood]);
 
   function handleComplete(workoutId: number) {
     markComplete(pid, workoutId);
@@ -98,6 +109,8 @@ export default function TodayPage() {
     setEditDuration(String(workout.duration_minutes));
     setEditTimeSlot(workout.time_slot);
     setEditDetails(workout.details);
+    setEditDistance(workout.distance ? String(workout.distance) : '');
+    setEditDistanceUnit(workout.distance_unit || defaultDistanceUnit(workout.discipline) || 'mi');
   }
 
   function saveCustomize() {
@@ -108,6 +121,8 @@ export default function TodayPage() {
       durationMinutes: parseInt(editDuration, 10) || 60,
       timeSlot: editTimeSlot,
       details: editDetails,
+      distance: editDistance ? parseFloat(editDistance) : undefined,
+      distanceUnit: hasDistance(editDiscipline) ? editDistanceUnit : undefined,
     });
     setCustomizeWorkout(null);
     loadToday(pid, selectedDate);
@@ -195,6 +210,11 @@ export default function TodayPage() {
         </div>
       )}
 
+      {/* Weekly Volume Summary */}
+      {weekWorkouts.length > 0 && (
+        <WeekVolumeSummary workouts={weekWorkouts} compact />
+      )}
+
       {/* Error Banner */}
       {generationError && (
         <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl bg-danger/15 border border-danger/20 px-4 py-3 animate-fade-in">
@@ -218,7 +238,7 @@ export default function TodayPage() {
 
       {/* Workout List */}
       {todayWorkouts.length > 0 ? (
-        <div className="pb-4">
+        <div className="pb-2">
           {todayWorkouts.map((workout) => (
             <WorkoutCard
               key={workout.id}
@@ -252,6 +272,40 @@ export default function TodayPage() {
           </div>
         )
       )}
+
+      {/* Coach Section */}
+      <div className="mx-4 mb-3">
+        <button
+          onClick={() => setCoachExpanded(!coachExpanded)}
+          className="cursor-pointer flex items-center justify-between w-full glass rounded-xl px-4 py-3 hover:bg-white/[0.06] transition-all duration-200"
+        >
+          <div className="flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-primary" />
+            <span className="font-semibold text-sm">Coach</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                navigate('/coach');
+              }}
+              className="cursor-pointer text-xs text-primary hover:text-primary/80 transition-colors"
+              title="Full screen"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+            <ChevronDown className={`h-4 w-4 text-muted transition-transform ${coachExpanded ? 'rotate-180' : ''}`} />
+          </div>
+        </button>
+
+        {coachExpanded && (
+          <div className="mt-2 glass rounded-xl p-3 animate-fade-in">
+            <CoachChat pid={pid} maxHeight="350px" />
+          </div>
+        )}
+      </div>
+
+      <div className="h-4" />
 
       {/* Skip Reason Modal */}
       <Modal
@@ -301,7 +355,7 @@ export default function TodayPage() {
       <Modal
         open={!!customizeWorkout}
         onClose={() => setCustomizeWorkout(null)}
-        title="Customize Workout"
+        title={customizeWorkout ? (customizeWorkout.status === 'pending' ? 'Customize Workout' : 'Edit Workout') : ''}
       >
         <div className="flex flex-col gap-4">
           {/* Title */}
@@ -322,7 +376,12 @@ export default function TodayPage() {
               {DISCIPLINES.map((d) => (
                 <button
                   key={d}
-                  onClick={() => setEditDiscipline(d)}
+                  type="button"
+                  onClick={() => {
+                    setEditDiscipline(d);
+                    const unit = defaultDistanceUnit(d);
+                    if (unit) setEditDistanceUnit(unit);
+                  }}
                   className={`cursor-pointer px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors ${
                     editDiscipline === d
                       ? 'bg-primary text-white'
@@ -346,6 +405,21 @@ export default function TodayPage() {
             />
           </div>
 
+          {/* Distance */}
+          {hasDistance(editDiscipline) && (
+            <div>
+              <label className="text-xs text-muted mb-1 block">Distance ({editDistanceUnit})</label>
+              <input
+                type="number"
+                step={editDistanceUnit === 'mi' || editDistanceUnit === 'km' ? '0.1' : '1'}
+                value={editDistance}
+                onChange={(e) => setEditDistance(e.target.value)}
+                placeholder="e.g. 3.1"
+                className={inputClasses}
+              />
+            </div>
+          )}
+
           {/* Time Slot */}
           <div>
             <label className="text-xs text-muted mb-1 block">Time Slot</label>
@@ -353,6 +427,7 @@ export default function TodayPage() {
               {TIME_SLOTS.map((ts) => (
                 <button
                   key={ts}
+                  type="button"
                   onClick={() => setEditTimeSlot(ts)}
                   className={`cursor-pointer flex-1 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${
                     editTimeSlot === ts

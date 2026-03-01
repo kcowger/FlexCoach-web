@@ -176,6 +176,8 @@ export function saveWorkouts(
     details: string;
     why?: string;
     structured_data?: string;
+    distance?: number;
+    distance_unit?: string;
   }>
 ): void {
   const all = getWorkouts(pid);
@@ -199,6 +201,8 @@ export function saveWorkouts(
       notes: '',
       why: w.why || '',
     };
+    if (w.distance != null) workout.distance = w.distance;
+    if (w.distance_unit) workout.distance_unit = w.distance_unit as Workout['distance_unit'];
     if (existingIdx >= 0) {
       all[existingIdx] = workout;
     } else {
@@ -250,7 +254,7 @@ export function updateWorkoutDetails(
   const idx = all.findIndex((w) => w.id === id);
   if (idx < 0) return;
 
-  const allowed = ['discipline', 'title', 'duration_minutes', 'details', 'time_slot', 'why'] as const;
+  const allowed = ['discipline', 'title', 'duration_minutes', 'details', 'time_slot', 'why', 'distance', 'distance_unit', 'actual_distance'] as const;
   for (const key of allowed) {
     if (key in updates) {
       (all[idx] as unknown as Record<string, unknown>)[key] = updates[key];
@@ -358,13 +362,15 @@ export function updateWorkoutPostData(
   pid: string,
   workoutId: number,
   rpe: number,
-  actualDuration: number
+  actualDuration: number,
+  actualDistance?: number
 ): void {
   const all = getWorkouts(pid);
   const idx = all.findIndex((w) => w.id === workoutId);
   if (idx < 0) return;
   all[idx].rpe = rpe;
   all[idx].actual_duration = actualDuration;
+  if (actualDistance != null) all[idx].actual_distance = actualDistance;
   setWorkouts(pid, all);
 }
 

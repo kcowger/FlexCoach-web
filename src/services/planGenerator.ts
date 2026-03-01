@@ -85,6 +85,8 @@ export async function generateWeekPlan(
     details: w.details,
     why: w.why || '',
     structured_data: w.structuredData ? JSON.stringify(w.structuredData) : '',
+    distance: w.distance,
+    distance_unit: w.distanceUnit,
   }));
 
   saveWorkouts(pid, planId, workoutsToSave);

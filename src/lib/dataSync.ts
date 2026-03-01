@@ -339,7 +339,9 @@ function persistProfile(pid: string): void {
 function persistWorkouts(pid: string): void {
   const c = cache;
   if (!c) return;
-  setDoc(workoutsRef(c.uid, pid), { items: c.workouts[pid] || [] }).catch((e) => handleSyncError('workouts', e));
+  const raw = c.workouts[pid] || [];
+  const items = raw.map((w) => stripUndefined(w as unknown as Record<string, unknown>));
+  setDoc(workoutsRef(c.uid, pid), { items }).catch((e) => handleSyncError('workouts', e));
 }
 
 function persistChat(pid: string): void {

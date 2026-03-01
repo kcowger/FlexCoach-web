@@ -24,7 +24,7 @@ interface WorkoutStore {
   updateNotes: (pid: string, workoutId: number, notes: string) => void;
   generateWeek: (pid: string, weekStart?: string) => Promise<GeneratedPlan>;
   applyWorkoutUpdate: (pid: string, workoutId: number, changes: Record<string, unknown>) => void;
-  updatePostWorkoutData: (pid: string, workoutId: number, rpe: number, actualDuration: number) => void;
+  updatePostWorkoutData: (pid: string, workoutId: number, rpe: number, actualDuration: number, actualDistance?: number) => void;
 }
 
 export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
@@ -84,6 +84,8 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
     if (changes.details) updates.details = changes.details;
     if (changes.durationMinutes) updates.duration_minutes = changes.durationMinutes;
     if (changes.timeSlot) updates.time_slot = changes.timeSlot;
+    if (changes.distance != null) updates.distance = changes.distance;
+    if (changes.distanceUnit) updates.distance_unit = changes.distanceUnit;
 
     if (Object.keys(updates).length > 0) {
       repoUpdateDetails(pid, workoutId, updates as Record<string, string | number>);
@@ -92,8 +94,8 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
     }
   },
 
-  updatePostWorkoutData: (pid, workoutId, rpe, actualDuration) => {
-    repoUpdatePostData(pid, workoutId, rpe, actualDuration);
+  updatePostWorkoutData: (pid, workoutId, rpe, actualDuration, actualDistance?) => {
+    repoUpdatePostData(pid, workoutId, rpe, actualDuration, actualDistance);
     get().loadToday(pid);
     get().loadWeek(pid);
   },

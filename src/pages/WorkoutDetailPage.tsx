@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, AlertCircle, Pencil } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useWorkoutStore } from '@/stores/useWorkoutStore';
 import { useMoodStore } from '@/stores/useMoodStore';
@@ -12,7 +12,11 @@ import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import { formatDate, formatDuration } from '@/utils/date';
-import type { Workout } from '@/types';
+import { formatDistance, hasDistance, defaultDistanceUnit } from '@/utils/distance';
+import type { Workout, Discipline, TimeSlot, DistanceUnit } from '@/types';
+
+const DISCIPLINES: Discipline[] = ['swim', 'bike', 'run', 'strength', 'rest', 'recovery', 'brick'];
+const TIME_SLOTS: TimeSlot[] = ['morning', 'midday', 'evening'];
 
 const TIME_SLOT_LABELS: Record<string, string> = {
   morning: 'Morning',
@@ -27,7 +31,7 @@ export default function WorkoutDetailPage() {
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
   const pid = useAppStore((s) => s.activeProfileId)!;
-  const { markComplete, markSkipped, updateNotes, updatePostWorkoutData } = useWorkoutStore();
+  const { markComplete, markSkipped, updateNotes, updatePostWorkoutData, applyWorkoutUpdate } = useWorkoutStore();
   const { checkWorkoutMood, logMood, moodError, clearMoodError } = useMoodStore();
 
   const [workout, setWorkout] = useState<Workout | null>(null);
@@ -39,6 +43,16 @@ export default function WorkoutDetailPage() {
   const [showPostWorkout, setShowPostWorkout] = useState(false);
   const [skipModal, setSkipModal] = useState(false);
   const [skipReason, setSkipReason] = useState('');
+
+  // Customize modal state
+  const [editModal, setEditModal] = useState(false);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDiscipline, setEditDiscipline] = useState<Discipline>('strength');
+  const [editDuration, setEditDuration] = useState('60');
+  const [editTimeSlot, setEditTimeSlot] = useState<TimeSlot>('morning');
+  const [editDetails, setEditDetails] = useState('');
+  const [editDistance, setEditDistance] = useState('');
+  const [editDistanceUnit, setEditDistanceUnit] = useState<DistanceUnit>('mi');
 
   useEffect(() => {
     if (!workoutId) {
@@ -87,6 +101,33 @@ export default function WorkoutDetailPage() {
     setTimeout(() => setNotesSaved(false), 2000);
   }
 
+  function openEditModal() {
+    if (!workout) return;
+    setEditTitle(workout.title);
+    setEditDiscipline(workout.discipline);
+    setEditDuration(String(workout.duration_minutes));
+    setEditTimeSlot(workout.time_slot);
+    setEditDetails(workout.details);
+    setEditDistance(workout.distance ? String(workout.distance) : '');
+    setEditDistanceUnit(workout.distance_unit || defaultDistanceUnit(workout.discipline) || 'mi');
+    setEditModal(true);
+  }
+
+  function saveEdit() {
+    if (!workout) return;
+    applyWorkoutUpdate(pid, workout.id, {
+      title: editTitle,
+      discipline: editDiscipline,
+      durationMinutes: parseInt(editDuration, 10) || 60,
+      timeSlot: editTimeSlot,
+      details: editDetails,
+      distance: editDistance ? parseFloat(editDistance) : undefined,
+      distanceUnit: hasDistance(editDiscipline) ? editDistanceUnit : undefined,
+    });
+    setEditModal(false);
+    reloadWorkout();
+  }
+
   if (notFound) {
     return (
       <div className="min-h-full flex flex-col items-center justify-center gap-4 px-6">
@@ -124,6 +165,13 @@ export default function WorkoutDetailPage() {
           <ArrowLeft className="h-5 w-5" />
         </button>
         <h1 className="text-xl font-bold text-text flex-1">Workout Details</h1>
+        <button
+          onClick={openEditModal}
+          className="cursor-pointer rounded-xl glass p-2.5 text-primary hover:text-primary/80 transition-all duration-200"
+          title="Edit workout"
+        >
+          <Pencil className="h-5 w-5" />
+        </button>
       </div>
 
       {/* Workout Info */}
@@ -152,6 +200,12 @@ export default function WorkoutDetailPage() {
           <span>{TIME_SLOT_LABELS[workout.time_slot] ?? workout.time_slot}</span>
           <span className="text-white/10">|</span>
           <span>{formatDuration(workout.duration_minutes)}</span>
+          {workout.distance != null && workout.distance_unit && (
+            <>
+              <span className="text-white/10">|</span>
+              <span>{formatDistance(workout.distance, workout.distance_unit)}</span>
+            </>
+          )}
         </div>
 
         {workout.skip_reason && (
@@ -183,6 +237,12 @@ export default function WorkoutDetailPage() {
                 )}
               </>
             )}
+            {workout.actual_distance != null && workout.distance_unit && (
+              <>
+                <span className="text-white/10">|</span>
+                <span>Actual: <span className="font-medium text-text">{formatDistance(workout.actual_distance, workout.distance_unit)}</span></span>
+              </>
+            )}
           </div>
         )}
       </Card>
@@ -206,8 +266,10 @@ export default function WorkoutDetailPage() {
       {showPostWorkout && workout.status === 'completed' && !workout.rpe && (
         <PostWorkoutCheckIn
           plannedDuration={workout.duration_minutes}
-          onSubmit={(rpe, actualDuration) => {
-            updatePostWorkoutData(pid, workout.id, rpe, actualDuration);
+          plannedDistance={workout.distance}
+          distanceUnit={workout.distance_unit}
+          onSubmit={(rpe, actualDuration, actualDistance) => {
+            updatePostWorkoutData(pid, workout.id, rpe, actualDuration, actualDistance);
             setShowPostWorkout(false);
             reloadWorkout();
           }}
@@ -326,6 +388,92 @@ export default function WorkoutDetailPage() {
               size="sm"
               onClick={handleSkipConfirm}
             />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Edit Workout Modal */}
+      <Modal
+        open={editModal}
+        onClose={() => setEditModal(false)}
+        title="Edit Workout"
+      >
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="text-xs text-muted mb-1 block">Title</label>
+            <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={inputClasses} />
+          </div>
+          <div>
+            <label className="text-xs text-muted mb-1 block">Discipline</label>
+            <div className="flex flex-wrap gap-2">
+              {DISCIPLINES.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => {
+                    setEditDiscipline(d);
+                    const unit = defaultDistanceUnit(d);
+                    if (unit) setEditDistanceUnit(unit);
+                  }}
+                  className={`cursor-pointer px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors ${
+                    editDiscipline === d
+                      ? 'bg-primary text-white'
+                      : 'bg-white/5 border border-white/10 text-muted hover:text-text'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted mb-1 block">Duration (minutes)</label>
+            <input type="number" value={editDuration} onChange={(e) => setEditDuration(e.target.value)} className={inputClasses} />
+          </div>
+          {hasDistance(editDiscipline) && (
+            <div>
+              <label className="text-xs text-muted mb-1 block">Distance ({editDistanceUnit})</label>
+              <input
+                type="number"
+                step={editDistanceUnit === 'mi' || editDistanceUnit === 'km' ? '0.1' : '1'}
+                value={editDistance}
+                onChange={(e) => setEditDistance(e.target.value)}
+                placeholder="e.g. 3.1"
+                className={inputClasses}
+              />
+            </div>
+          )}
+          <div>
+            <label className="text-xs text-muted mb-1 block">Time Slot</label>
+            <div className="flex gap-2">
+              {TIME_SLOTS.map((ts) => (
+                <button
+                  key={ts}
+                  type="button"
+                  onClick={() => setEditTimeSlot(ts)}
+                  className={`cursor-pointer flex-1 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${
+                    editTimeSlot === ts
+                      ? 'bg-primary text-white'
+                      : 'bg-white/5 border border-white/10 text-muted hover:text-text'
+                  }`}
+                >
+                  {ts}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted mb-1 block">Details</label>
+            <textarea
+              value={editDetails}
+              onChange={(e) => setEditDetails(e.target.value)}
+              rows={4}
+              className={`${inputClasses} resize-none`}
+            />
+          </div>
+          <div className="flex gap-3 justify-end pt-2">
+            <Button title="Cancel" variant="outline" size="sm" onClick={() => setEditModal(false)} />
+            <Button title="Save Changes" variant="primary" size="sm" onClick={saveEdit} />
           </div>
         </div>
       </Modal>

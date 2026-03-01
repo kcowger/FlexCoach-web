@@ -25,6 +25,7 @@ export type Sex = 'male' | 'female' | 'other' | 'prefer_not_to_say';
 export type WeightUnit = 'lbs' | 'kg';
 export type HeightUnit = 'imperial' | 'metric';
 export type MoodContext = 'daily' | 'pre_workout';
+export type DistanceUnit = 'mi' | 'km' | 'yd' | 'm';
 
 export interface UserProfile {
   id: number;
@@ -89,9 +90,12 @@ export interface Workout {
   skip_reason: string;
   completed_at: string | null;
   notes: string;
-  rpe?: number;             // 1-10 post-workout perceived exertion
-  actual_duration?: number; // minutes actually done
-  why?: string;             // explanation of why this workout exists
+  rpe?: number;              // 1-10 post-workout perceived exertion
+  actual_duration?: number;  // minutes actually done
+  distance?: number;         // planned distance (e.g. 3.1 for a 5K run)
+  distance_unit?: DistanceUnit; // mi/km for bike/run, yd/m for swim
+  actual_distance?: number;  // post-workout actual distance
+  why?: string;              // explanation of why this workout exists
 }
 
 export interface ChatMessage {
@@ -144,6 +148,8 @@ export interface GeneratedWorkout {
   discipline: Discipline;
   title: string;
   durationMinutes: number;
+  distance?: number;
+  distanceUnit?: DistanceUnit;
   details: string;
   why?: string;
   structuredData?: Record<string, unknown>;

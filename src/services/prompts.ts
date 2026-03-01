@@ -296,12 +296,16 @@ Return ONLY valid JSON:
       "discipline": "swim|bike|run|strength|rest|recovery|brick",
       "title": "Short descriptive title",
       "durationMinutes": number,
+      "distance": number_or_null,
+      "distanceUnit": "mi|km|yd|m" or null,
       "details": "SPECIFIC workout prescription. Include zones, distances, paces, intervals, sets, reps, rest periods. Start every session with warm-up including ACL prehab.",
       "why": "1-2 sentences explaining how this workout supports the athlete's goals and fits the overall training plan.",
       "structuredData": {}
     }
   ]
 }
+
+DISTANCE: For swim, bike, and run workouts, ALWAYS include "distance" (number) and "distanceUnit". Use "mi" for bike/run, "yd" for swim. Example: a 5K run → distance: 3.1, distanceUnit: "mi". A 1500yd swim → distance: 1500, distanceUnit: "yd". For strength/rest/recovery, set both to null.
 
 IMPORTANT: Be SPECIFIC. Not "easy run" but "Easy Zone 2 run, 35 min at 6:00-6:30/km. 5 min warm-up walk with dynamic stretches. Include 4x20s strides in last 10 min. Cool down 5 min walk."`;
 }
@@ -383,6 +387,8 @@ When the athlete requests a plan change (swap workout, modify today's session, u
     "title": "new_title",
     "details": "full_new_workout_description",
     "durationMinutes": new_duration,
+    "distance": number_or_null,
+    "distanceUnit": "mi|km|yd|m" or null,
     "equipment": {"key": true_or_false}
   }
 }

@@ -1,9 +1,13 @@
 import { useState } from 'react';
+import type { DistanceUnit } from '@/types';
+import { formatDistance } from '@/utils/distance';
 import Button from '@/components/ui/Button';
 
 interface PostWorkoutCheckInProps {
   plannedDuration: number;
-  onSubmit: (rpe: number, actualDuration: number) => void;
+  plannedDistance?: number;
+  distanceUnit?: DistanceUnit;
+  onSubmit: (rpe: number, actualDuration: number, actualDistance?: number) => void;
   onSkip: () => void;
 }
 
@@ -22,11 +26,16 @@ const RPE_LABELS: Record<number, string> = {
 
 export default function PostWorkoutCheckIn({
   plannedDuration,
+  plannedDistance,
+  distanceUnit,
   onSubmit,
   onSkip,
 }: PostWorkoutCheckInProps) {
   const [rpe, setRpe] = useState(0);
   const [duration, setDuration] = useState(String(plannedDuration));
+  const [distance, setDistance] = useState(plannedDistance ? String(plannedDistance) : '');
+
+  const showDistance = plannedDistance != null && distanceUnit != null;
 
   return (
     <div className="glass rounded-2xl p-5 mx-4 mb-3 animate-fade-in">
@@ -83,13 +92,39 @@ export default function PostWorkoutCheckIn({
         )}
       </div>
 
+      {/* Actual distance */}
+      {showDistance && (
+        <div className="mb-4">
+          <label className="text-sm text-muted block mb-2">
+            Actual Distance ({distanceUnit})
+          </label>
+          <input
+            type="number"
+            step={distanceUnit === 'mi' || distanceUnit === 'km' ? '0.1' : '1'}
+            min="0"
+            value={distance}
+            onChange={(e) => setDistance(e.target.value)}
+            className="bg-white/5 border border-white/10 text-text rounded-lg px-3 py-2 w-28 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
+          />
+          {plannedDistance != null && parseFloat(distance) !== plannedDistance && (
+            <span className="text-xs text-muted ml-2">
+              (planned: {formatDistance(plannedDistance, distanceUnit!)})
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex gap-3">
         <Button
           title="Save"
           variant="primary"
           size="sm"
           disabled={rpe === 0}
-          onClick={() => onSubmit(rpe, parseInt(duration, 10) || plannedDuration)}
+          onClick={() => onSubmit(
+            rpe,
+            parseInt(duration, 10) || plannedDuration,
+            showDistance && distance ? parseFloat(distance) : undefined
+          )}
         />
         <Button
           title="Skip"

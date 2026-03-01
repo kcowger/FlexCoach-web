@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/stores/useAppStore';
 import { useWorkoutStore } from '@/stores/useWorkoutStore';
 import WorkoutCard from '@/components/workout/WorkoutCard';
+import WeekVolumeSummary from '@/components/workout/WeekVolumeSummary';
 import Button from '@/components/ui/Button';
 import Modal from '@/components/ui/Modal';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
@@ -11,13 +12,15 @@ import {
   getWeekStartISO,
   addDays,
   formatDateShort,
-  formatDuration,
   formatDayOfWeek,
   getDayNumber,
   getTodayISO,
 } from '@/utils/date';
-import { DISCIPLINE_COLORS } from '@/constants/disciplines';
-import type { Workout, Discipline } from '@/types';
+import { hasDistance, defaultDistanceUnit } from '@/utils/distance';
+import type { Workout, Discipline, TimeSlot, DistanceUnit } from '@/types';
+
+const DISCIPLINES: Discipline[] = ['swim', 'bike', 'run', 'strength', 'rest', 'recovery', 'brick'];
+const TIME_SLOTS: TimeSlot[] = ['morning', 'midday', 'evening'];
 
 const inputClasses =
   'bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all';
@@ -33,17 +36,28 @@ export default function WeekPage() {
     generateWeek,
     markComplete,
     markSkipped,
+    applyWorkoutUpdate,
   } = useWorkoutStore();
 
   const [weekOffset, setWeekOffset] = useState(0);
   const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
     const today = new Date();
     const day = today.getDay();
-    return day === 0 ? 6 : day - 1; // Convert Sun=0 to Mon=0 index
+    return day === 0 ? 6 : day - 1;
   });
 
   const [skipModal, setSkipModal] = useState<{ workoutId: number } | null>(null);
   const [skipReason, setSkipReason] = useState('');
+
+  // Customize modal
+  const [customizeWorkout, setCustomizeWorkout] = useState<Workout | null>(null);
+  const [editTitle, setEditTitle] = useState('');
+  const [editDiscipline, setEditDiscipline] = useState<Discipline>('strength');
+  const [editDuration, setEditDuration] = useState('60');
+  const [editTimeSlot, setEditTimeSlot] = useState<TimeSlot>('morning');
+  const [editDetails, setEditDetails] = useState('');
+  const [editDistance, setEditDistance] = useState('');
+  const [editDistanceUnit, setEditDistanceUnit] = useState<DistanceUnit>('mi');
 
   const weekStart = getWeekStartISO(
     new Date(Date.now() + weekOffset * 7 * 24 * 60 * 60 * 1000)
@@ -76,20 +90,36 @@ export default function WeekPage() {
     }
   }
 
+  function openCustomize(workout: Workout) {
+    setCustomizeWorkout(workout);
+    setEditTitle(workout.title);
+    setEditDiscipline(workout.discipline);
+    setEditDuration(String(workout.duration_minutes));
+    setEditTimeSlot(workout.time_slot);
+    setEditDetails(workout.details);
+    setEditDistance(workout.distance ? String(workout.distance) : '');
+    setEditDistanceUnit(workout.distance_unit || defaultDistanceUnit(workout.discipline) || 'mi');
+  }
+
+  function saveCustomize() {
+    if (!customizeWorkout) return;
+    applyWorkoutUpdate(pid, customizeWorkout.id, {
+      title: editTitle,
+      discipline: editDiscipline,
+      durationMinutes: parseInt(editDuration, 10) || 60,
+      timeSlot: editTimeSlot,
+      details: editDetails,
+      distance: editDistance ? parseFloat(editDistance) : undefined,
+      distanceUnit: hasDistance(editDiscipline) ? editDistanceUnit : undefined,
+    });
+    setCustomizeWorkout(null);
+    loadWeek(pid, weekStart);
+  }
+
   // Group workouts by day
   const workoutsByDay: Record<string, Workout[]> = {};
   for (const date of weekDays) {
     workoutsByDay[date] = weekWorkouts.filter((w) => w.date === date);
-  }
-
-  // Volume summary
-  const volumeByDiscipline: Partial<Record<Discipline, number>> = {};
-  let totalMinutes = 0;
-  for (const w of weekWorkouts) {
-    if (w.discipline !== 'rest') {
-      volumeByDiscipline[w.discipline] = (volumeByDiscipline[w.discipline] || 0) + w.duration_minutes;
-      totalMinutes += w.duration_minutes;
-    }
   }
 
   const hasWorkouts = weekWorkouts.length > 0;
@@ -165,7 +195,6 @@ export default function WeekPage() {
               >
                 {getDayNumber(date)}
               </span>
-              {/* Workout dot indicator */}
               {dayHasWorkouts && !isSelected && (
                 <span className="w-1.5 h-1.5 rounded-full bg-primary mt-1" />
               )}
@@ -183,27 +212,8 @@ export default function WeekPage() {
         </div>
       )}
 
-      {/* Volume summary */}
-      {hasWorkouts && (
-        <div className="mx-4 glass rounded-xl p-3 mb-3">
-          <div className="flex flex-wrap gap-3">
-            {Object.entries(volumeByDiscipline).map(([disc, mins]) => (
-              <div key={disc} className="flex items-center gap-1">
-                <span
-                  className="w-2 h-2 rounded-full"
-                  style={{ backgroundColor: DISCIPLINE_COLORS[disc as Discipline] }}
-                />
-                <span className="text-muted text-xs capitalize">
-                  {disc}: {formatDuration(mins)}
-                </span>
-              </div>
-            ))}
-            <span className="text-text text-xs font-semibold">
-              Total: {formatDuration(totalMinutes)}
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Volume summary — planned vs completed */}
+      {hasWorkouts && <WeekVolumeSummary workouts={weekWorkouts} />}
 
       {/* Selected day's workouts */}
       {hasWorkouts ? (
@@ -220,6 +230,7 @@ export default function WeekPage() {
                 workout={w}
                 onClick={() => navigate(`/workout/${w.id}`)}
                 onComplete={() => handleComplete(w.id)}
+                onCustomize={() => openCustomize(w)}
                 onSkip={() => setSkipModal({ workoutId: w.id })}
               />
             ))
@@ -288,6 +299,92 @@ export default function WeekPage() {
               size="sm"
               onClick={handleSkipConfirm}
             />
+          </div>
+        </div>
+      </Modal>
+
+      {/* Customize Modal */}
+      <Modal
+        open={!!customizeWorkout}
+        onClose={() => setCustomizeWorkout(null)}
+        title={customizeWorkout ? (customizeWorkout.status === 'pending' ? 'Customize Workout' : 'Edit Workout') : ''}
+      >
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="text-xs text-muted mb-1 block">Title</label>
+            <input type="text" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className={inputClasses} />
+          </div>
+          <div>
+            <label className="text-xs text-muted mb-1 block">Discipline</label>
+            <div className="flex flex-wrap gap-2">
+              {DISCIPLINES.map((d) => (
+                <button
+                  key={d}
+                  type="button"
+                  onClick={() => {
+                    setEditDiscipline(d);
+                    const unit = defaultDistanceUnit(d);
+                    if (unit) setEditDistanceUnit(unit);
+                  }}
+                  className={`cursor-pointer px-3 py-1.5 rounded-full text-xs font-semibold capitalize transition-colors ${
+                    editDiscipline === d
+                      ? 'bg-primary text-white'
+                      : 'bg-white/5 border border-white/10 text-muted hover:text-text'
+                  }`}
+                >
+                  {d}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted mb-1 block">Duration (minutes)</label>
+            <input type="number" value={editDuration} onChange={(e) => setEditDuration(e.target.value)} className={inputClasses} />
+          </div>
+          {hasDistance(editDiscipline) && (
+            <div>
+              <label className="text-xs text-muted mb-1 block">Distance ({editDistanceUnit})</label>
+              <input
+                type="number"
+                step={editDistanceUnit === 'mi' || editDistanceUnit === 'km' ? '0.1' : '1'}
+                value={editDistance}
+                onChange={(e) => setEditDistance(e.target.value)}
+                placeholder="e.g. 3.1"
+                className={inputClasses}
+              />
+            </div>
+          )}
+          <div>
+            <label className="text-xs text-muted mb-1 block">Time Slot</label>
+            <div className="flex gap-2">
+              {TIME_SLOTS.map((ts) => (
+                <button
+                  key={ts}
+                  type="button"
+                  onClick={() => setEditTimeSlot(ts)}
+                  className={`cursor-pointer flex-1 py-2 rounded-xl text-sm font-semibold capitalize transition-colors ${
+                    editTimeSlot === ts
+                      ? 'bg-primary text-white'
+                      : 'bg-white/5 border border-white/10 text-muted hover:text-text'
+                  }`}
+                >
+                  {ts}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted mb-1 block">Details</label>
+            <textarea
+              value={editDetails}
+              onChange={(e) => setEditDetails(e.target.value)}
+              rows={4}
+              className={`${inputClasses} resize-none`}
+            />
+          </div>
+          <div className="flex gap-3 justify-end pt-2">
+            <Button title="Cancel" variant="outline" size="sm" onClick={() => setCustomizeWorkout(null)} />
+            <Button title="Save Changes" variant="primary" size="sm" onClick={saveCustomize} />
           </div>
         </div>
       </Modal>

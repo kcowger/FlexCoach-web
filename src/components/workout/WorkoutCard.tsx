@@ -2,6 +2,7 @@ import { CheckCircle2, XCircle, Pencil } from 'lucide-react';
 import type { Workout } from '@/types';
 import Badge from '@/components/ui/Badge';
 import { formatDuration } from '@/utils/date';
+import { formatDistance } from '@/utils/distance';
 
 interface WorkoutCardProps {
   workout: Workout;
@@ -40,7 +41,7 @@ export default function WorkoutCard({
   return (
     <div
       className={`glass rounded-2xl p-5 mx-4 mb-3 border-l-3 ${accentClass} animate-fade-in transition-all duration-200 hover:bg-white/[0.06] ${
-        isDone ? 'opacity-50' : ''
+        isDone ? 'opacity-60' : ''
       }`}
     >
       <div className="cursor-pointer" onClick={onClick}>
@@ -60,9 +61,15 @@ export default function WorkoutCard({
           {workout.title}
         </h3>
 
-        {/* Duration + time slot */}
+        {/* Duration + distance + time slot */}
         <div className="flex items-center gap-3 text-sm text-muted mb-2">
           <span>{formatDuration(workout.duration_minutes)}</span>
+          {workout.distance != null && workout.distance_unit && (
+            <>
+              <span className="text-white/10">|</span>
+              <span>{formatDistance(workout.distance, workout.distance_unit)}</span>
+            </>
+          )}
           <span className="text-white/10">|</span>
           <span>{TIME_SLOT_LABELS[workout.time_slot] ?? workout.time_slot}</span>
         </div>
@@ -73,9 +80,9 @@ export default function WorkoutCard({
         )}
       </div>
 
-      {/* Action buttons */}
-      {workout.status === 'pending' && (
-        <div className="mt-3 flex gap-2">
+      {/* Action buttons — Edit always visible, Complete/Skip only for pending */}
+      <div className="mt-3 flex gap-2">
+        {workout.status === 'pending' && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -86,16 +93,18 @@ export default function WorkoutCard({
             <CheckCircle2 className="h-4 w-4" />
             Complete
           </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onCustomize?.();
-            }}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary/15 border border-primary/20 py-2.5 text-sm font-medium text-primary cursor-pointer hover:bg-primary/25 transition-all duration-200 active:scale-[0.98]"
-          >
-            <Pencil className="h-4 w-4" />
-            Customize
-          </button>
+        )}
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onCustomize?.();
+          }}
+          className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-primary/15 border border-primary/20 py-2.5 text-sm font-medium text-primary cursor-pointer hover:bg-primary/25 transition-all duration-200 active:scale-[0.98]"
+        >
+          <Pencil className="h-4 w-4" />
+          {isDone ? 'Edit' : 'Customize'}
+        </button>
+        {workout.status === 'pending' && (
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -106,8 +115,8 @@ export default function WorkoutCard({
             <XCircle className="h-4 w-4" />
             Skip
           </button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

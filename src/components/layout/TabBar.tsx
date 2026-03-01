@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { CalendarCheck, Calendar, MessageCircle, User } from 'lucide-react';
+import { CalendarCheck, Calendar, User } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 interface Tab {
@@ -11,7 +11,6 @@ interface Tab {
 const tabs: Tab[] = [
   { to: '/', label: 'Today', icon: CalendarCheck },
   { to: '/week', label: 'Week', icon: Calendar },
-  { to: '/coach', label: 'Coach', icon: MessageCircle },
   { to: '/profile', label: 'Profile', icon: User },
 ];
 
