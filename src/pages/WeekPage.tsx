@@ -41,11 +41,7 @@ export default function WeekPage() {
   } = useWorkoutStore();
 
   const [weekOffset, setWeekOffset] = useState(0);
-  const [selectedDayIndex, setSelectedDayIndex] = useState(() => {
-    const today = new Date();
-    const day = today.getDay();
-    return day === 0 ? 6 : day - 1;
-  });
+  const [selectedDayIndex, setSelectedDayIndex] = useState(0);
 
   const [skipModal, setSkipModal] = useState<{ workoutId: number } | null>(null);
   const [skipReason, setSkipReason] = useState('');
