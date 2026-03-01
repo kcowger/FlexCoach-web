@@ -1,13 +1,13 @@
 import { useNavigate } from 'react-router-dom';
 import { Dumbbell } from 'lucide-react';
-import { STORAGE_KEYS } from '@/storage/keys';
+import { getApiKey } from '@/lib/dataSync';
 import Button from '@/components/ui/Button';
 
 export default function Welcome() {
   const navigate = useNavigate();
 
   function handleGetStarted() {
-    const apiKey = localStorage.getItem(STORAGE_KEYS.CLAUDE_API_KEY);
+    const apiKey = getApiKey();
     if (apiKey) {
       navigate('/onboarding/goals');
     } else {

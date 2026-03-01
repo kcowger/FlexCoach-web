@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Eye, EyeOff, KeyRound } from 'lucide-react';
-import { STORAGE_KEYS } from '@/storage/keys';
+import { setApiKey as savApiKey } from '@/lib/dataSync';
 import { createMessage } from '@/services/claude';
 import Button from '@/components/ui/Button';
 
@@ -23,8 +23,8 @@ export default function ApiKey() {
     setError('');
     setLoading(true);
 
-    // Save key first so createMessage can read it
-    localStorage.setItem(STORAGE_KEYS.CLAUDE_API_KEY, trimmed);
+    // Save key to Firestore cache so createMessage can read it
+    savApiKey(trimmed);
 
     try {
       await createMessage(
@@ -35,7 +35,7 @@ export default function ApiKey() {
       navigate('/onboarding/goals');
     } catch (err) {
       // Remove invalid key
-      localStorage.removeItem(STORAGE_KEYS.CLAUDE_API_KEY);
+      savApiKey('');
       setError(
         err instanceof Error
           ? err.message
@@ -74,7 +74,7 @@ export default function ApiKey() {
           <h1 className="text-2xl font-bold">Connect to Claude AI</h1>
           <p className="text-muted text-center leading-relaxed">
             FlexCoach uses Claude AI to generate personalized training plans and
-            provide coaching advice. Your API key is stored only in your browser.
+            provide coaching advice. Your API key is stored securely in your account.
           </p>
         </div>
 

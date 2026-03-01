@@ -1,4 +1,20 @@
-import { profileKey, nextId } from './keys';
+import {
+  getProfileData,
+  updateProfileData,
+  getSchedule,
+  setSchedule,
+  getEvents as dsGetEvents,
+  setEvents as dsSetEvents,
+  getBlocks,
+  setBlocks,
+  getPlans,
+  setPlans,
+  getWorkouts,
+  setWorkouts,
+  getChatData,
+  setChatData,
+  nextId,
+} from '@/lib/dataSync';
 import { getTodayISO, addDays } from '@/utils/date';
 import type {
   UserProfile,
@@ -10,22 +26,10 @@ import type {
   ChatMessage,
 } from '@/types';
 
-// ── Helpers ───────────────────────────────────────────────────────────
-
-function getArray<T>(pid: string, key: Parameters<typeof profileKey>[1]): T[] {
-  return JSON.parse(localStorage.getItem(profileKey(pid, key)) || '[]');
-}
-
-function setArray<T>(pid: string, key: Parameters<typeof profileKey>[1], data: T[]): void {
-  localStorage.setItem(profileKey(pid, key), JSON.stringify(data));
-}
-
 // ── User Profile ──────────────────────────────────────────────────────
 
 export function getProfile(pid: string): UserProfile {
-  const raw = localStorage.getItem(profileKey(pid, 'PROFILE_DATA'));
-  if (!raw) throw new Error('No profile found');
-  return JSON.parse(raw);
+  return getProfileData(pid);
 }
 
 export function updateProfile(
@@ -35,15 +39,13 @@ export function updateProfile(
     'weekly_hours_available' | 'travel_mode' | 'api_key_configured' | 'onboarding_complete'
   >>
 ): void {
-  const profile = getProfile(pid);
-  const updated = { ...profile, ...updates, updated_at: new Date().toISOString() };
-  localStorage.setItem(profileKey(pid, 'PROFILE_DATA'), JSON.stringify(updated));
+  updateProfileData(pid, updates);
 }
 
 // ── Schedule Preferences ──────────────────────────────────────────────
 
 export function getSchedulePreferences(pid: string): SchedulePreference[] {
-  return getArray<SchedulePreference>(pid, 'SCHEDULE');
+  return getSchedule(pid);
 }
 
 export function getAvailableSlots(pid: string): SchedulePreference[] {
@@ -57,7 +59,7 @@ export function upsertSchedulePreference(
   available: boolean,
   maxDuration: number = 60
 ): void {
-  const schedule = getSchedulePreferences(pid);
+  const schedule = getSchedule(pid);
   const idx = schedule.findIndex((s) => s.day_of_week === dayOfWeek && s.time_slot === timeSlot);
   const entry: SchedulePreference = {
     id: idx >= 0 ? schedule[idx].id : nextId(),
@@ -71,13 +73,13 @@ export function upsertSchedulePreference(
   } else {
     schedule.push(entry);
   }
-  setArray(pid, 'SCHEDULE', schedule);
+  setSchedule(pid, schedule);
 }
 
 // ── Events ────────────────────────────────────────────────────────────
 
 export function getEvents(pid: string): TrainingEvent[] {
-  return getArray<TrainingEvent>(pid, 'EVENTS').sort(
+  return dsGetEvents(pid).sort(
     (a, b) => a.event_date.localeCompare(b.event_date)
   );
 }
@@ -91,22 +93,22 @@ export function createEvent(
   pid: string,
   event: Omit<TrainingEvent, 'id' | 'created_at'>
 ): number {
-  const events = getArray<TrainingEvent>(pid, 'EVENTS');
+  const events = dsGetEvents(pid);
   const id = nextId();
   events.push({ ...event, id, created_at: new Date().toISOString() });
-  setArray(pid, 'EVENTS', events);
+  dsSetEvents(pid, events);
   return id;
 }
 
 export function deleteEvent(pid: string, id: number): void {
-  const events = getArray<TrainingEvent>(pid, 'EVENTS').filter((e) => e.id !== id);
-  setArray(pid, 'EVENTS', events);
+  const events = dsGetEvents(pid).filter((e) => e.id !== id);
+  dsSetEvents(pid, events);
 }
 
 // ── Training Blocks ───────────────────────────────────────────────────
 
 export function getTrainingBlocks(pid: string): TrainingBlock[] {
-  return getArray<TrainingBlock>(pid, 'TRAINING_BLOCKS');
+  return getBlocks(pid);
 }
 
 export function getCurrentBlock(pid: string): TrainingBlock | null {
@@ -125,13 +127,13 @@ export function saveTrainingBlocks(
     id: nextId(),
     created_at: new Date().toISOString(),
   }));
-  setArray(pid, 'TRAINING_BLOCKS', data);
+  setBlocks(pid, data);
 }
 
 // ── Workout Plans ─────────────────────────────────────────────────────
 
 export function getWeekPlan(pid: string, weekStartDate: string): WorkoutPlan | null {
-  const plans = getArray<WorkoutPlan>(pid, 'WORKOUT_PLANS');
+  const plans = getPlans(pid);
   return plans.find((p) => p.week_start_date === weekStartDate) || null;
 }
 
@@ -142,7 +144,7 @@ export function saveWeekPlan(
   planJson: string,
   generationContext: string = ''
 ): number {
-  const plans = getArray<WorkoutPlan>(pid, 'WORKOUT_PLANS');
+  const plans = getPlans(pid);
   const existing = plans.findIndex((p) => p.week_start_date === weekStartDate);
   const id = existing >= 0 ? plans[existing].id : nextId();
   const plan: WorkoutPlan = {
@@ -158,31 +160,27 @@ export function saveWeekPlan(
   } else {
     plans.push(plan);
   }
-  setArray(pid, 'WORKOUT_PLANS', plans);
+  setPlans(pid, plans);
   return id;
 }
 
 // ── Workouts ──────────────────────────────────────────────────────────
 
-function getAllWorkouts(pid: string): Workout[] {
-  return getArray<Workout>(pid, 'WORKOUTS');
-}
-
 export function getTodayWorkouts(pid: string, date: string): Workout[] {
-  return getAllWorkouts(pid)
+  return getWorkouts(pid)
     .filter((w) => w.date === date)
     .sort((a, b) => a.time_slot.localeCompare(b.time_slot));
 }
 
 export function getWeekWorkouts(pid: string, weekStart: string): Workout[] {
   const weekEnd = addDays(weekStart, 7);
-  return getAllWorkouts(pid)
+  return getWorkouts(pid)
     .filter((w) => w.date >= weekStart && w.date < weekEnd)
     .sort((a, b) => a.date.localeCompare(b.date) || a.time_slot.localeCompare(b.time_slot));
 }
 
 export function getWorkoutById(pid: string, id: number): Workout | null {
-  return getAllWorkouts(pid).find((w) => w.id === id) || null;
+  return getWorkouts(pid).find((w) => w.id === id) || null;
 }
 
 export function saveWorkouts(
@@ -198,7 +196,7 @@ export function saveWorkouts(
     structured_data?: string;
   }>
 ): void {
-  const all = getAllWorkouts(pid);
+  const all = getWorkouts(pid);
   for (const w of workouts) {
     const existingIdx = all.findIndex(
       (existing) => existing.date === w.date && existing.time_slot === w.time_slot
@@ -224,7 +222,7 @@ export function saveWorkouts(
       all.push(workout);
     }
   }
-  setArray(pid, 'WORKOUTS', all);
+  setWorkouts(pid, all);
 }
 
 export function updateWorkoutStatus(
@@ -233,7 +231,7 @@ export function updateWorkoutStatus(
   status: 'completed' | 'skipped',
   skipReason: string = ''
 ): void {
-  const all = getAllWorkouts(pid);
+  const all = getWorkouts(pid);
   const idx = all.findIndex((w) => w.id === id);
   if (idx < 0) return;
   all[idx].status = status;
@@ -242,20 +240,20 @@ export function updateWorkoutStatus(
   } else {
     all[idx].skip_reason = skipReason;
   }
-  setArray(pid, 'WORKOUTS', all);
+  setWorkouts(pid, all);
 }
 
 export function updateWorkoutNotes(pid: string, id: number, notes: string): void {
-  const all = getAllWorkouts(pid);
+  const all = getWorkouts(pid);
   const idx = all.findIndex((w) => w.id === id);
   if (idx < 0) return;
   all[idx].notes = notes;
-  setArray(pid, 'WORKOUTS', all);
+  setWorkouts(pid, all);
 }
 
 export function getRecentWorkouts(pid: string, days: number = 14): Workout[] {
   const cutoff = addDays(getTodayISO(), -days);
-  return getAllWorkouts(pid)
+  return getWorkouts(pid)
     .filter((w) => w.date >= cutoff)
     .sort((a, b) => b.date.localeCompare(a.date));
 }
@@ -265,7 +263,7 @@ export function updateWorkoutDetails(
   id: number,
   updates: Record<string, string | number>
 ): void {
-  const all = getAllWorkouts(pid);
+  const all = getWorkouts(pid);
   const idx = all.findIndex((w) => w.id === id);
   if (idx < 0) return;
 
@@ -275,14 +273,13 @@ export function updateWorkoutDetails(
       (all[idx] as unknown as Record<string, unknown>)[key] = updates[key];
     }
   }
-  setArray(pid, 'WORKOUTS', all);
+  setWorkouts(pid, all);
 }
 
 // ── Chat Messages ─────────────────────────────────────────────────────
 
 export function getChatMessages(pid: string, limit: number = 50): ChatMessage[] {
-  const all = getArray<ChatMessage>(pid, 'CHAT_MESSAGES');
-  // Return newest last (ascending), limited
+  const all = getChatData(pid);
   return all.slice(-limit);
 }
 
@@ -292,7 +289,7 @@ export function saveChatMessage(
   content: string,
   contextSnapshot: string = ''
 ): number {
-  const all = getArray<ChatMessage>(pid, 'CHAT_MESSAGES');
+  const all = getChatData(pid);
   const id = nextId();
   all.push({
     id,
@@ -301,10 +298,10 @@ export function saveChatMessage(
     timestamp: new Date().toISOString(),
     context_snapshot: contextSnapshot,
   });
-  setArray(pid, 'CHAT_MESSAGES', all);
+  setChatData(pid, all);
   return id;
 }
 
 export function clearChatHistory(pid: string): void {
-  setArray(pid, 'CHAT_MESSAGES', []);
+  setChatData(pid, []);
 }

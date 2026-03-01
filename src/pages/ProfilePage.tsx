@@ -47,7 +47,7 @@ const selectClasses =
 export default function ProfilePage() {
   const navigate = useNavigate();
   const pid = useAppStore((s) => s.activeProfileId)!;
-  const { lock } = useAuthStore();
+  const { logout } = useAuthStore();
   const {
     profile,
     schedule,
@@ -199,8 +199,8 @@ export default function ProfilePage() {
     navigate('/profiles');
   }
 
-  function handleLock() {
-    lock();
+  async function handleLogout() {
+    await logout();
     navigate('/lock');
   }
 
@@ -489,10 +489,10 @@ export default function ProfilePage() {
             onClick={handleSwitchProfile}
           />
           <Button
-            title="Lock App"
+            title="Sign Out"
             variant="outline"
             size="md"
-            onClick={handleLock}
+            onClick={handleLogout}
           />
         </div>
       </Card>

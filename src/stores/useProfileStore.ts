@@ -7,7 +7,7 @@ import {
   getSchedulePreferences,
   getEvents,
 } from '@/storage/repository';
-import { getProfiles, createProfile as repoCreateProfile, deleteProfile as repoDeleteProfile } from '@/storage/profiles';
+import { getProfiles, createProfile as dsCreateProfile, deleteProfile as dsDeleteProfile } from '@/lib/dataSync';
 
 interface ProfileStore {
   profiles: ProfileSummary[];
@@ -38,13 +38,13 @@ export const useProfileStore = create<ProfileStore>((set) => ({
   },
 
   createProfile: (name) => {
-    const id = repoCreateProfile(name);
+    const id = dsCreateProfile(name);
     set({ profiles: getProfiles() });
     return id;
   },
 
   deleteProfile: (id) => {
-    repoDeleteProfile(id);
+    dsDeleteProfile(id);
     set({ profiles: getProfiles() });
   },
 
@@ -57,7 +57,6 @@ export const useProfileStore = create<ProfileStore>((set) => ({
     repoUpdateProfile(pid, updates);
     const profile = getProfile(pid);
     set({ profile });
-    // Also update the name in the profiles list if changed
     if (updates.name) {
       set({ profiles: getProfiles() });
     }

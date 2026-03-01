@@ -1,11 +1,11 @@
-import { STORAGE_KEYS } from '@/storage/keys';
+import { getApiKey as getCachedApiKey } from '@/lib/dataSync';
 
 const MODEL = 'claude-sonnet-4-20250514';
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const API_VERSION = '2023-06-01';
 
 function getApiKey(): string {
-  const key = localStorage.getItem(STORAGE_KEYS.CLAUDE_API_KEY);
+  const key = getCachedApiKey();
   if (!key) throw new Error('API key not configured');
   return key;
 }

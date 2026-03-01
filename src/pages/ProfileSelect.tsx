@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Plus, User, Trash2 } from 'lucide-react';
+import { LogOut, Plus, User, Trash2 } from 'lucide-react';
 import { useProfileStore } from '@/stores/useProfileStore';
 import { useAppStore } from '@/stores/useAppStore';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { getProfile } from '@/storage/repository';
-import { setActiveProfileId } from '@/storage/profiles';
 import Button from '@/components/ui/Button';
 import Card from '@/components/ui/Card';
 import Modal from '@/components/ui/Modal';
@@ -14,7 +13,7 @@ export default function ProfileSelect() {
   const navigate = useNavigate();
   const { profiles, loadProfiles, createProfile, deleteProfile } = useProfileStore();
   const { setActiveProfile } = useAppStore();
-  const { lock } = useAuthStore();
+  const { logout } = useAuthStore();
 
   const [showNewProfileModal, setShowNewProfileModal] = useState(false);
   const [newProfileName, setNewProfileName] = useState('');
@@ -26,7 +25,6 @@ export default function ProfileSelect() {
 
   function handleSelectProfile(id: string) {
     setActiveProfile(id);
-    setActiveProfileId(id);
 
     try {
       const profile = getProfile(id);
@@ -47,7 +45,6 @@ export default function ProfileSelect() {
 
     const id = createProfile(trimmed);
     setActiveProfile(id);
-    setActiveProfileId(id);
     setNewProfileName('');
     setShowNewProfileModal(false);
     navigate('/onboarding/welcome');
@@ -59,8 +56,8 @@ export default function ProfileSelect() {
     setDeleteTarget(null);
   }
 
-  function handleLock() {
-    lock();
+  async function handleLogout() {
+    await logout();
     navigate('/lock');
   }
 
@@ -79,11 +76,11 @@ export default function ProfileSelect() {
       <div className="flex items-center justify-between px-6 pt-6 pb-2">
         <h1 className="text-2xl font-bold">Who's training?</h1>
         <button
-          onClick={handleLock}
+          onClick={handleLogout}
           className="cursor-pointer rounded-xl bg-surface p-2.5 text-muted hover:text-text transition-colors"
-          title="Lock"
+          title="Sign Out"
         >
-          <Lock className="h-5 w-5" />
+          <LogOut className="h-5 w-5" />
         </button>
       </div>
 

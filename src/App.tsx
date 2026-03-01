@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate, Outlet } from 'react-router-dom
 import { useEffect } from 'react';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useAppStore } from '@/stores/useAppStore';
+import LoadingOverlay from '@/components/ui/LoadingOverlay';
 
 import LockScreen from '@/pages/LockScreen';
 import ProfileSelect from '@/pages/ProfileSelect';
@@ -19,8 +20,8 @@ import ProfilePage from '@/pages/ProfilePage';
 import WorkoutDetailPage from '@/pages/WorkoutDetailPage';
 
 function AuthGuard() {
-  const isUnlocked = useAuthStore((s) => s.isUnlocked);
-  if (!isUnlocked) return <Navigate to="/lock" replace />;
+  const user = useAuthStore((s) => s.user);
+  if (!user) return <Navigate to="/lock" replace />;
   return <Outlet />;
 }
 
@@ -32,10 +33,15 @@ function ProfileGuard() {
 
 export default function App() {
   const initialize = useAuthStore((s) => s.initialize);
+  const isLoading = useAuthStore((s) => s.isLoading);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  if (isLoading) {
+    return <LoadingOverlay visible message="Loading..." />;
+  }
 
   return (
     <BrowserRouter basename="/FlexCoach-web">
