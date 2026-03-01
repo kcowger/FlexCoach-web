@@ -8,6 +8,7 @@ import type {
   Injury,
   TimeSlot,
   MoodEntry,
+  Benchmarks,
 } from '@/types';
 import { DAY_LABELS_FULL } from '@/constants/defaults';
 
@@ -53,13 +54,112 @@ function formatMoodData(moodEntries: MoodEntry[]): string {
   const avgEnergy = (recent.reduce((s, m) => s + m.energy, 0) / recent.length).toFixed(1);
   const avgSleep = (recent.reduce((s, m) => s + m.sleep_quality, 0) / recent.length).toFixed(1);
 
-  let summary = `Recent averages (${recent.length} entries): Mood ${avgMood}/5, Energy ${avgEnergy}/5, Sleep ${avgSleep}/5`;
+  let summary = `Recent averages (${recent.length} entries): Mood ${avgMood}/5, Energy ${avgEnergy}/5, Sleep Quality ${avgSleep}/5`;
+
+  // Sleep hours
+  const withSleepHours = recent.filter((m) => m.sleep_hours);
+  if (withSleepHours.length > 0) {
+    const avgHrs = (withSleepHours.reduce((s, m) => s + m.sleep_hours!, 0) / withSleepHours.length).toFixed(1);
+    summary += `, Sleep Hours avg ${avgHrs}h`;
+  }
+
+  // Stress
+  const withStress = recent.filter((m) => m.stress);
+  if (withStress.length > 0) {
+    const avgStress = (withStress.reduce((s, m) => s + m.stress!, 0) / withStress.length).toFixed(1);
+    summary += `, Stress ${avgStress}/5`;
+  }
+
+  // Resting HR
+  const withHr = recent.filter((m) => m.resting_hr);
+  if (withHr.length > 0) {
+    const avgHr = Math.round(withHr.reduce((s, m) => s + m.resting_hr!, 0) / withHr.length);
+    const latestHr = withHr[0].resting_hr;
+    summary += `\nResting HR: avg ${avgHr}bpm, latest ${latestHr}bpm`;
+    if (withHr.length >= 3 && latestHr! > avgHr + 5) {
+      summary += ' (ELEVATED — consider recovery day)';
+    }
+  }
+
+  // Weight trend
+  const withWeight = recent.filter((m) => m.weight);
+  if (withWeight.length > 0) {
+    const latest = withWeight[0];
+    summary += `\nWeight: ${latest.weight} ${latest.weight_unit || 'lbs'}`;
+    if (withWeight.length >= 2) {
+      const oldest = withWeight[withWeight.length - 1];
+      const diff = latest.weight! - oldest.weight!;
+      if (Math.abs(diff) >= 0.5) {
+        summary += ` (${diff > 0 ? '+' : ''}${diff.toFixed(1)} over ${withWeight.length} entries)`;
+      }
+    }
+  }
 
   const today = recent[0];
   if (today) {
-    summary += `\nToday: Mood ${today.mood}/5, Energy ${today.energy}/5, Sleep ${today.sleep_quality}/5`;
+    let todayLine = `\nToday: Mood ${today.mood}/5, Energy ${today.energy}/5, Sleep ${today.sleep_quality}/5`;
+    if (today.stress) todayLine += `, Stress ${today.stress}/5`;
+    if (today.sleep_hours) todayLine += `, Slept ${today.sleep_hours}h`;
+    summary += todayLine;
   }
 
+  return summary;
+}
+
+function formatBenchmarks(benchmarks: Benchmarks): string {
+  const parts: string[] = [];
+
+  function secondsToTime(s: number): string {
+    const hrs = Math.floor(s / 3600);
+    const mins = Math.floor((s % 3600) / 60);
+    const secs = s % 60;
+    if (hrs > 0) return `${hrs}:${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    return `${mins}:${String(secs).padStart(2, '0')}`;
+  }
+
+  if (benchmarks.five_k_seconds) {
+    const pacePerKm = benchmarks.five_k_seconds / 5;
+    parts.push(`5K: ${secondsToTime(benchmarks.five_k_seconds)} (${secondsToTime(Math.round(pacePerKm))}/km)`);
+  }
+  if (benchmarks.ten_k_seconds) {
+    const pacePerKm = benchmarks.ten_k_seconds / 10;
+    parts.push(`10K: ${secondsToTime(benchmarks.ten_k_seconds)} (${secondsToTime(Math.round(pacePerKm))}/km)`);
+  }
+  if (benchmarks.half_marathon_seconds) {
+    const pacePerKm = benchmarks.half_marathon_seconds / 21.1;
+    parts.push(`Half Marathon: ${secondsToTime(benchmarks.half_marathon_seconds)} (${secondsToTime(Math.round(pacePerKm))}/km)`);
+  }
+  if (benchmarks.ftp_watts) {
+    parts.push(`FTP: ${benchmarks.ftp_watts}W`);
+  }
+  if (benchmarks.swim_100m_seconds) {
+    parts.push(`Swim 100m: ${secondsToTime(benchmarks.swim_100m_seconds)}`);
+  }
+  if (benchmarks.max_hr) {
+    const z2Low = Math.round(benchmarks.max_hr * 0.6);
+    const z2High = Math.round(benchmarks.max_hr * 0.7);
+    const z3Low = Math.round(benchmarks.max_hr * 0.7);
+    const z3High = Math.round(benchmarks.max_hr * 0.8);
+    const z4Low = Math.round(benchmarks.max_hr * 0.8);
+    const z4High = Math.round(benchmarks.max_hr * 0.9);
+    parts.push(`Max HR: ${benchmarks.max_hr}bpm | Z2: ${z2Low}-${z2High} | Z3: ${z3Low}-${z3High} | Z4: ${z4Low}-${z4High}`);
+  }
+
+  return parts.length > 0 ? parts.join('\n') : 'No benchmarks set.';
+}
+
+function formatRecentRpe(workouts: Workout[]): string {
+  const withRpe = workouts.filter((w) => w.rpe && w.status === 'completed');
+  if (withRpe.length === 0) return '';
+
+  const avgRpe = (withRpe.reduce((s, w) => s + w.rpe!, 0) / withRpe.length).toFixed(1);
+  const overDuration = withRpe.filter((w) => w.actual_duration && w.actual_duration > w.duration_minutes);
+  const underDuration = withRpe.filter((w) => w.actual_duration && w.actual_duration < w.duration_minutes);
+
+  let summary = `Recent RPE avg: ${avgRpe}/10 (from ${withRpe.length} workouts)`;
+  if (overDuration.length > 0 || underDuration.length > 0) {
+    summary += ` | Duration vs planned: ${overDuration.length} went over, ${underDuration.length} under`;
+  }
   return summary;
 }
 
@@ -192,7 +292,8 @@ export function buildPlanGenerationPrompt(
   currentBlock: TrainingBlock | null,
   recentWorkouts: Workout[],
   weekNumber: number,
-  moodEntries: MoodEntry[] = []
+  moodEntries: MoodEntry[] = [],
+  benchmarks: Benchmarks = {}
 ): string {
   return `You are FlexCoach, an expert triathlon and strength coach creating a detailed weekly training plan.
 
@@ -237,6 +338,10 @@ ${formatRecentActivity(recentWorkouts)}
 ## Athlete Mood & Energy
 ${formatMoodData(moodEntries)}
 
+## Performance Benchmarks
+${formatBenchmarks(benchmarks)}
+${formatRecentRpe(recentWorkouts) ? `\n## Recent Effort Data\n${formatRecentRpe(recentWorkouts)}` : ''}
+
 ## Upcoming Events
 ${formatEvents(events)}
 
@@ -269,7 +374,8 @@ export function buildChatSystemPrompt(
   weekWorkouts: Workout[],
   events: TrainingEvent[],
   recentWorkouts: Workout[],
-  moodEntries: MoodEntry[] = []
+  moodEntries: MoodEntry[] = [],
+  benchmarks: Benchmarks = {}
 ): string {
   const todaySummary =
     todayWorkouts.length > 0
@@ -299,6 +405,10 @@ export function buildChatSystemPrompt(
 
 ## Current Mood & Energy
 ${formatMoodData(moodEntries)}
+
+## Performance Benchmarks
+${formatBenchmarks(benchmarks)}
+${formatRecentRpe(recentWorkouts) ? `\n## Recent Effort Data\n${formatRecentRpe(recentWorkouts)}` : ''}
 
 ## Today's Workout
 ${todaySummary}

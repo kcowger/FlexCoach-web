@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { MoodEntry, MoodContext } from '@/types';
+import type { MoodEntry, MoodContext, WeightUnit } from '@/types';
 import {
   getTodayMood,
   getWorkoutMood,
@@ -7,6 +7,14 @@ import {
   saveMoodEntry,
 } from '@/storage/repository';
 import { getTodayISO } from '@/utils/date';
+
+interface MoodExtra {
+  sleepHours?: number;
+  stress?: number;
+  restingHr?: number;
+  weight?: number;
+  weightUnit?: WeightUnit;
+}
 
 interface MoodStore {
   todayMood: MoodEntry | null;
@@ -21,7 +29,8 @@ interface MoodStore {
     energy: number,
     sleepQuality: number,
     context: MoodContext,
-    workoutId?: number
+    workoutId?: number,
+    extra?: MoodExtra
   ) => void;
 }
 
@@ -42,8 +51,8 @@ export const useMoodStore = create<MoodStore>((set) => ({
     return getWorkoutMood(pid, workoutId);
   },
 
-  logMood: (pid, mood, energy, sleepQuality, context, workoutId) => {
-    saveMoodEntry(pid, mood, energy, sleepQuality, context, workoutId);
+  logMood: (pid, mood, energy, sleepQuality, context, workoutId, extra) => {
+    saveMoodEntry(pid, mood, energy, sleepQuality, context, workoutId, extra);
     const todayMood = getTodayMood(pid, getTodayISO());
     const recentMood = getRecentMoodEntries(pid, 14);
     set({ todayMood, recentMood });

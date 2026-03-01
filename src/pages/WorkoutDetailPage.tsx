@@ -6,6 +6,7 @@ import { useWorkoutStore } from '@/stores/useWorkoutStore';
 import { useMoodStore } from '@/stores/useMoodStore';
 import { getWorkoutById } from '@/storage/repository';
 import MoodCheckIn from '@/components/mood/MoodCheckIn';
+import PostWorkoutCheckIn from '@/components/workout/PostWorkoutCheckIn';
 import Badge from '@/components/ui/Badge';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -26,7 +27,7 @@ export default function WorkoutDetailPage() {
   const { workoutId } = useParams<{ workoutId: string }>();
   const navigate = useNavigate();
   const pid = useAppStore((s) => s.activeProfileId)!;
-  const { markComplete, markSkipped, updateNotes } = useWorkoutStore();
+  const { markComplete, markSkipped, updateNotes, updatePostWorkoutData } = useWorkoutStore();
   const { checkWorkoutMood, logMood } = useMoodStore();
 
   const [workout, setWorkout] = useState<Workout | null>(null);
@@ -35,6 +36,7 @@ export default function WorkoutDetailPage() {
   const [notesSaved, setNotesSaved] = useState(false);
   const [workoutMoodLogged, setWorkoutMoodLogged] = useState(false);
 
+  const [showPostWorkout, setShowPostWorkout] = useState(false);
   const [skipModal, setSkipModal] = useState(false);
   const [skipReason, setSkipReason] = useState('');
 
@@ -67,6 +69,7 @@ export default function WorkoutDetailPage() {
     if (!workout) return;
     markComplete(pid, workout.id);
     reloadWorkout();
+    setShowPostWorkout(true);
   }
 
   function handleSkipConfirm() {
@@ -164,16 +167,49 @@ export default function WorkoutDetailPage() {
             Completed at {new Date(workout.completed_at).toLocaleString()}
           </p>
         )}
+
+        {workout.rpe && (
+          <div className="flex flex-wrap gap-3 text-sm text-muted">
+            <span>RPE: <span className="font-medium text-text">{workout.rpe}/10</span></span>
+            {workout.actual_duration && (
+              <>
+                <span className="text-surface-light">|</span>
+                <span>Actual: <span className="font-medium text-text">{workout.actual_duration}min</span></span>
+                {workout.actual_duration !== workout.duration_minutes && (
+                  <span className="text-xs">
+                    ({workout.actual_duration > workout.duration_minutes ? '+' : ''}
+                    {workout.actual_duration - workout.duration_minutes}min vs planned)
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+        )}
       </Card>
 
       {/* Pre-workout Mood Check-in */}
       {workout.status === 'pending' && !workoutMoodLogged && (
         <MoodCheckIn
           title="Pre-workout check-in"
-          onSubmit={(mood, energy, sleep) => {
-            logMood(pid, mood, energy, sleep, 'pre_workout', workout.id);
+          onSubmit={(data) => {
+            logMood(pid, data.mood, data.energy, data.sleep, 'pre_workout', workout.id, {
+              stress: data.stress,
+            });
             setWorkoutMoodLogged(true);
           }}
+        />
+      )}
+
+      {/* Post-workout Check-in */}
+      {showPostWorkout && workout.status === 'completed' && !workout.rpe && (
+        <PostWorkoutCheckIn
+          plannedDuration={workout.duration_minutes}
+          onSubmit={(rpe, actualDuration) => {
+            updatePostWorkoutData(pid, workout.id, rpe, actualDuration);
+            setShowPostWorkout(false);
+            reloadWorkout();
+          }}
+          onSkip={() => setShowPostWorkout(false)}
         />
       )}
 

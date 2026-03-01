@@ -15,6 +15,8 @@ import {
   setChatData,
   getMoodData,
   setMoodData,
+  getBenchmarksData,
+  setBenchmarksData,
   nextId,
 } from '@/lib/dataSync';
 import { getTodayISO, addDays } from '@/utils/date';
@@ -28,6 +30,8 @@ import type {
   ChatMessage,
   MoodEntry,
   MoodContext,
+  Benchmarks,
+  WeightUnit,
 } from '@/types';
 
 // ── User Profile ──────────────────────────────────────────────────────
@@ -342,7 +346,14 @@ export function saveMoodEntry(
   energy: number,
   sleepQuality: number,
   context: MoodContext,
-  workoutId?: number
+  workoutId?: number,
+  extra?: {
+    sleepHours?: number;
+    stress?: number;
+    restingHr?: number;
+    weight?: number;
+    weightUnit?: WeightUnit;
+  }
 ): number {
   const entries = getMoodData(pid);
   const id = nextId();
@@ -352,10 +363,52 @@ export function saveMoodEntry(
     mood,
     energy,
     sleep_quality: sleepQuality,
+    sleep_hours: extra?.sleepHours,
+    stress: extra?.stress,
+    resting_hr: extra?.restingHr,
+    weight: extra?.weight,
+    weight_unit: extra?.weightUnit,
     context,
     workout_id: workoutId,
     created_at: new Date().toISOString(),
   });
   setMoodData(pid, entries);
   return id;
+}
+
+// ── Post-workout Data ────────────────────────────────────────────────
+
+export function updateWorkoutPostData(
+  pid: string,
+  workoutId: number,
+  rpe: number,
+  actualDuration: number
+): void {
+  const all = getWorkouts(pid);
+  const idx = all.findIndex((w) => w.id === workoutId);
+  if (idx < 0) return;
+  all[idx].rpe = rpe;
+  all[idx].actual_duration = actualDuration;
+  setWorkouts(pid, all);
+}
+
+// ── Benchmarks ───────────────────────────────────────────────────────
+
+export function getBenchmarks(pid: string): Benchmarks {
+  return getBenchmarksData(pid);
+}
+
+export function updateBenchmarks(pid: string, updates: Partial<Benchmarks>): void {
+  const current = getBenchmarksData(pid);
+  setBenchmarksData(pid, { ...current, ...updates });
+}
+
+// ── Weight Log ───────────────────────────────────────────────────────
+
+export function getWeightLog(pid: string, days: number = 30): Array<{ date: string; weight: number; unit: WeightUnit }> {
+  const cutoff = addDays(getTodayISO(), -days);
+  return getMoodData(pid)
+    .filter((m) => m.weight && m.date >= cutoff)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((m) => ({ date: m.date, weight: m.weight!, unit: m.weight_unit || 'lbs' }));
 }

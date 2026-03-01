@@ -6,6 +6,7 @@ import {
   updateWorkoutStatus as repoUpdateStatus,
   updateWorkoutNotes as repoUpdateNotes,
   updateWorkoutDetails as repoUpdateDetails,
+  updateWorkoutPostData as repoUpdatePostData,
   getCurrentBlock,
 } from '@/storage/repository';
 import { generateWeekPlan, generateBlockOutline } from '@/services/planGenerator';
@@ -27,6 +28,7 @@ interface WorkoutStore {
   generateBlock: (pid: string) => Promise<void>;
   generateWeek: (pid: string, weekStart?: string) => Promise<GeneratedPlan>;
   applyWorkoutUpdate: (pid: string, workoutId: number, changes: Record<string, unknown>) => void;
+  updatePostWorkoutData: (pid: string, workoutId: number, rpe: number, actualDuration: number) => void;
 }
 
 export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
@@ -113,5 +115,11 @@ export const useWorkoutStore = create<WorkoutStore>((set, get) => ({
       get().loadToday(pid);
       get().loadWeek(pid);
     }
+  },
+
+  updatePostWorkoutData: (pid, workoutId, rpe, actualDuration) => {
+    repoUpdatePostData(pid, workoutId, rpe, actualDuration);
+    get().loadToday(pid);
+    get().loadWeek(pid);
   },
 }));

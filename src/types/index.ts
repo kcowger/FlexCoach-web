@@ -102,6 +102,8 @@ export interface Workout {
   skip_reason: string;
   completed_at: string | null;
   notes: string;
+  rpe?: number;             // 1-10 post-workout perceived exertion
+  actual_duration?: number; // minutes actually done
 }
 
 export interface ChatMessage {
@@ -118,9 +120,24 @@ export interface MoodEntry {
   mood: number;
   energy: number;
   sleep_quality: number;
+  sleep_hours?: number;
+  stress?: number;
+  resting_hr?: number;
+  weight?: number;
+  weight_unit?: WeightUnit;
   context: MoodContext;
   workout_id?: number;
   created_at: string;
+}
+
+export interface Benchmarks {
+  five_k_seconds?: number;
+  ten_k_seconds?: number;
+  half_marathon_seconds?: number;
+  ftp_watts?: number;
+  swim_100m_seconds?: number;
+  max_hr?: number;
+  updated_at?: string;
 }
 
 // Parsed types (from JSON fields)

@@ -102,15 +102,22 @@ export default function TodayPage() {
       {!todayMood ? (
         <MoodCheckIn
           title="How are you feeling today?"
-          onSubmit={(mood, energy, sleep) =>
-            logMood(pid, mood, energy, sleep, 'daily')
+          onSubmit={(data) =>
+            logMood(pid, data.mood, data.energy, data.sleep, 'daily', undefined, {
+              sleepHours: data.sleepHours,
+              stress: data.stress,
+              restingHr: data.restingHr,
+              weight: data.weight,
+            })
           }
         />
       ) : (
-        <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-surface px-4 py-3">
+        <div className="mx-4 mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-surface px-4 py-3">
           <span className="text-xs text-muted">Today's check-in:</span>
           <span className="text-xs font-medium">
             Mood {todayMood.mood}/5 &middot; Energy {todayMood.energy}/5 &middot; Sleep {todayMood.sleep_quality}/5
+            {todayMood.stress ? ` \u00b7 Stress ${todayMood.stress}/5` : ''}
+            {todayMood.sleep_hours ? ` \u00b7 ${todayMood.sleep_hours}hrs` : ''}
           </span>
         </div>
       )}

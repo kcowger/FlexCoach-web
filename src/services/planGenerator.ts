@@ -7,6 +7,7 @@ import {
   getUpcomingEvents,
   getRecentWorkouts,
   getRecentMoodEntries,
+  getBenchmarks,
   getCurrentBlock,
   saveTrainingBlocks,
   saveWeekPlan,
@@ -70,6 +71,7 @@ export async function generateWeekPlan(
   const currentBlock = getCurrentBlock(pid);
   const recentWorkouts = getRecentWorkouts(pid, 14);
   const recentMood = getRecentMoodEntries(pid, 14);
+  const benchmarks = getBenchmarks(pid);
   const weekNumber = calculateWeekNumber(profile.created_at, weekStart);
 
   const systemPrompt = buildPlanGenerationPrompt(
@@ -79,7 +81,8 @@ export async function generateWeekPlan(
     currentBlock,
     recentWorkouts,
     weekNumber,
-    recentMood
+    recentMood,
+    benchmarks
   );
 
   const response = await createMessage(

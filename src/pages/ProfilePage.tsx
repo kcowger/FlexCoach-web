@@ -9,6 +9,8 @@ import {
   Calendar,
   Clock,
   Activity,
+  Timer,
+  TrendingDown,
   Settings,
   Plus,
   X,
@@ -22,6 +24,9 @@ import {
   createEvent,
   deleteEvent,
   upsertSchedulePreference,
+  getBenchmarks,
+  updateBenchmarks,
+  getWeightLog,
 } from '@/storage/repository';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
@@ -34,6 +39,7 @@ import {
   TIME_SLOT_LABELS,
 } from '@/constants/defaults';
 import type {
+  Benchmarks,
   Equipment,
   Injury,
   ExperienceLevel,
@@ -83,6 +89,21 @@ export default function ProfilePage() {
   const [heightUnit, setHeightUnit] = useState<HeightUnit>('imperial');
   const [sex, setSex] = useState<Sex | ''>('');
 
+  // Benchmarks
+  const [benchmarks, setBenchmarks] = useState<Benchmarks>({});
+  const [fiveKMin, setFiveKMin] = useState('');
+  const [fiveKSec, setFiveKSec] = useState('');
+  const [tenKMin, setTenKMin] = useState('');
+  const [tenKSec, setTenKSec] = useState('');
+  const [halfMarHr, setHalfMarHr] = useState('');
+  const [halfMarMin, setHalfMarMin] = useState('');
+  const [halfMarSec, setHalfMarSec] = useState('');
+  const [ftpWatts, setFtpWatts] = useState('');
+  const [swimMin, setSwimMin] = useState('');
+  const [swimSec, setSwimSec] = useState('');
+  const [maxHr, setMaxHr] = useState('');
+  const [weightLog, setWeightLog] = useState<Array<{ date: string; weight: number; unit: WeightUnit }>>([]);
+
   // Event modal
   const [showEventModal, setShowEventModal] = useState(false);
   const [newEventName, setNewEventName] = useState('');
@@ -101,6 +122,28 @@ export default function ProfilePage() {
     loadSchedule(pid);
     loadEvents(pid);
     loadRecentMood(pid);
+    const b = getBenchmarks(pid);
+    setBenchmarks(b);
+    if (b.five_k_seconds) {
+      setFiveKMin(String(Math.floor(b.five_k_seconds / 60)));
+      setFiveKSec(String(b.five_k_seconds % 60));
+    }
+    if (b.ten_k_seconds) {
+      setTenKMin(String(Math.floor(b.ten_k_seconds / 60)));
+      setTenKSec(String(b.ten_k_seconds % 60));
+    }
+    if (b.half_marathon_seconds) {
+      setHalfMarHr(String(Math.floor(b.half_marathon_seconds / 3600)));
+      setHalfMarMin(String(Math.floor((b.half_marathon_seconds % 3600) / 60)));
+      setHalfMarSec(String(b.half_marathon_seconds % 60));
+    }
+    if (b.ftp_watts) setFtpWatts(String(b.ftp_watts));
+    if (b.swim_100m_seconds) {
+      setSwimMin(String(Math.floor(b.swim_100m_seconds / 60)));
+      setSwimSec(String(b.swim_100m_seconds % 60));
+    }
+    if (b.max_hr) setMaxHr(String(b.max_hr));
+    setWeightLog(getWeightLog(pid, 30));
   }, [pid, loadProfile, loadSchedule, loadEvents, loadRecentMood]);
 
   // Sync local state when profile loads
@@ -164,6 +207,22 @@ export default function ProfilePage() {
       height_unit: heightUnit,
       sex: sex || undefined,
     });
+  }
+
+  function saveBenchmarks() {
+    const updates: Benchmarks = { ...benchmarks };
+    const fk = (Number(fiveKMin) || 0) * 60 + (Number(fiveKSec) || 0);
+    if (fk > 0) updates.five_k_seconds = fk; else delete updates.five_k_seconds;
+    const tk = (Number(tenKMin) || 0) * 60 + (Number(tenKSec) || 0);
+    if (tk > 0) updates.ten_k_seconds = tk; else delete updates.ten_k_seconds;
+    const hm = (Number(halfMarHr) || 0) * 3600 + (Number(halfMarMin) || 0) * 60 + (Number(halfMarSec) || 0);
+    if (hm > 0) updates.half_marathon_seconds = hm; else delete updates.half_marathon_seconds;
+    if (Number(ftpWatts)) updates.ftp_watts = Number(ftpWatts); else delete updates.ftp_watts;
+    const sw = (Number(swimMin) || 0) * 60 + (Number(swimSec) || 0);
+    if (sw > 0) updates.swim_100m_seconds = sw; else delete updates.swim_100m_seconds;
+    if (Number(maxHr)) updates.max_hr = Number(maxHr); else delete updates.max_hr;
+    updateBenchmarks(pid, updates);
+    setBenchmarks(updates);
   }
 
   function toggleEquipment(key: string) {
@@ -429,6 +488,99 @@ export default function ProfilePage() {
         </div>
       </Card>
 
+      {/* Benchmarks */}
+      <Card>
+        <div className="flex items-center gap-2 mb-4">
+          <Timer className="h-5 w-5 text-primary" />
+          <h2 className="text-base font-semibold text-text">Benchmarks</h2>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {/* 5K */}
+          <div>
+            <label className="text-sm text-muted mb-1 block">5K Time</label>
+            <div className="flex items-center gap-1">
+              <input type="number" min="0" placeholder="mm" value={fiveKMin} onChange={(e) => setFiveKMin(e.target.value)} className={`${inputClasses} w-20`} />
+              <span className="text-muted">:</span>
+              <input type="number" min="0" max="59" placeholder="ss" value={fiveKSec} onChange={(e) => setFiveKSec(e.target.value)} className={`${inputClasses} w-20`} />
+            </div>
+          </div>
+
+          {/* 10K */}
+          <div>
+            <label className="text-sm text-muted mb-1 block">10K Time</label>
+            <div className="flex items-center gap-1">
+              <input type="number" min="0" placeholder="mm" value={tenKMin} onChange={(e) => setTenKMin(e.target.value)} className={`${inputClasses} w-20`} />
+              <span className="text-muted">:</span>
+              <input type="number" min="0" max="59" placeholder="ss" value={tenKSec} onChange={(e) => setTenKSec(e.target.value)} className={`${inputClasses} w-20`} />
+            </div>
+          </div>
+
+          {/* Half Marathon */}
+          <div>
+            <label className="text-sm text-muted mb-1 block">Half Marathon</label>
+            <div className="flex items-center gap-1">
+              <input type="number" min="0" placeholder="hh" value={halfMarHr} onChange={(e) => setHalfMarHr(e.target.value)} className={`${inputClasses} w-16`} />
+              <span className="text-muted">:</span>
+              <input type="number" min="0" max="59" placeholder="mm" value={halfMarMin} onChange={(e) => setHalfMarMin(e.target.value)} className={`${inputClasses} w-16`} />
+              <span className="text-muted">:</span>
+              <input type="number" min="0" max="59" placeholder="ss" value={halfMarSec} onChange={(e) => setHalfMarSec(e.target.value)} className={`${inputClasses} w-16`} />
+            </div>
+          </div>
+
+          {/* FTP */}
+          <div>
+            <label className="text-sm text-muted mb-1 block">Cycling FTP</label>
+            <div className="flex items-center gap-2">
+              <input type="number" min="0" placeholder="e.g. 200" value={ftpWatts} onChange={(e) => setFtpWatts(e.target.value)} className={`${inputClasses} w-28`} />
+              <span className="text-sm text-muted">watts</span>
+            </div>
+          </div>
+
+          {/* Swim pace */}
+          <div>
+            <label className="text-sm text-muted mb-1 block">Swim Pace (per 100m)</label>
+            <div className="flex items-center gap-1">
+              <input type="number" min="0" placeholder="mm" value={swimMin} onChange={(e) => setSwimMin(e.target.value)} className={`${inputClasses} w-20`} />
+              <span className="text-muted">:</span>
+              <input type="number" min="0" max="59" placeholder="ss" value={swimSec} onChange={(e) => setSwimSec(e.target.value)} className={`${inputClasses} w-20`} />
+            </div>
+          </div>
+
+          {/* Max HR */}
+          <div>
+            <label className="text-sm text-muted mb-1 block">Max Heart Rate</label>
+            <div className="flex items-center gap-2">
+              <input type="number" min="100" max="250" placeholder="e.g. 185" value={maxHr} onChange={(e) => setMaxHr(e.target.value)} className={`${inputClasses} w-28`} />
+              <span className="text-sm text-muted">bpm</span>
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-1">
+            <Button title="Save" variant="primary" size="sm" onClick={saveBenchmarks} />
+          </div>
+        </div>
+      </Card>
+
+      {/* Weight Trend */}
+      {weightLog.length > 0 && (
+        <Card>
+          <div className="flex items-center gap-2 mb-4">
+            <TrendingDown className="h-5 w-5 text-primary" />
+            <h2 className="text-base font-semibold text-text">Weight Trend</h2>
+          </div>
+
+          <div className="flex flex-col gap-1">
+            {weightLog.slice(-10).reverse().map((entry, i) => (
+              <div key={i} className="flex items-center justify-between text-sm py-1">
+                <span className="text-muted text-xs">{entry.date}</span>
+                <span className="font-medium">{entry.weight} {entry.unit}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      )}
+
       {/* 3. Goals */}
       <Card>
         <div className="flex items-center gap-2 mb-4">
@@ -652,7 +804,7 @@ export default function ProfilePage() {
                     {entry.context === 'daily' ? 'Daily' : 'Pre-workout'}
                   </span>
                 </div>
-                <div className="flex items-center gap-3 text-xs font-medium">
+                <div className="flex items-center gap-2 text-xs font-medium">
                   <span className={entry.mood >= 4 ? 'text-success' : entry.mood <= 2 ? 'text-danger' : 'text-warning'}>
                     M:{entry.mood}
                   </span>
@@ -662,6 +814,14 @@ export default function ProfilePage() {
                   <span className={entry.sleep_quality >= 4 ? 'text-success' : entry.sleep_quality <= 2 ? 'text-danger' : 'text-warning'}>
                     S:{entry.sleep_quality}
                   </span>
+                  {entry.stress && (
+                    <span className={entry.stress <= 2 ? 'text-success' : entry.stress >= 4 ? 'text-danger' : 'text-warning'}>
+                      St:{entry.stress}
+                    </span>
+                  )}
+                  {entry.sleep_hours && (
+                    <span className="text-muted">{entry.sleep_hours}h</span>
+                  )}
                 </div>
               </div>
             ))}

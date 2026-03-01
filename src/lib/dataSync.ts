@@ -9,6 +9,7 @@ import type {
   Workout,
   ChatMessage,
   MoodEntry,
+  Benchmarks,
 } from '@/types';
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -30,6 +31,7 @@ interface ProfileDoc {
   events: TrainingEvent[];
   blocks: TrainingBlock[];
   plans: WorkoutPlan[];
+  benchmarks: Benchmarks;
 }
 
 interface Cache {
@@ -97,7 +99,7 @@ export async function loadUserData(uid: string): Promise<void> {
       getDoc(moodRef(uid, p.id)),
     ]);
 
-    profiles[p.id] = profSnap.exists()
+    const profData = profSnap.exists()
       ? (profSnap.data() as ProfileDoc)
       : {
           profile: createDefaultProfile(p.id, p.name),
@@ -105,7 +107,11 @@ export async function loadUserData(uid: string): Promise<void> {
           events: [],
           blocks: [],
           plans: [],
+          benchmarks: {},
         };
+    // Ensure benchmarks field exists for older profiles
+    if (!profData.benchmarks) profData.benchmarks = {};
+    profiles[p.id] = profData as ProfileDoc;
 
     workouts[p.id] = workSnap.exists()
       ? ((workSnap.data() as { items: Workout[] }).items || [])
@@ -153,6 +159,7 @@ export function createProfile(name: string): string {
     events: [],
     blocks: [],
     plans: [],
+    benchmarks: {},
   };
   c.workouts[id] = [];
   c.chat[id] = [];
@@ -254,6 +261,19 @@ export function setPlans(pid: string, plans: WorkoutPlan[]): void {
   const c = requireCache();
   if (!c.profiles[pid]) return;
   c.profiles[pid].plans = plans;
+  persistProfile(pid);
+}
+
+// ── Benchmarks ──────────────────────────────────────────────────────
+
+export function getBenchmarksData(pid: string): Benchmarks {
+  return requireCache().profiles[pid]?.benchmarks || {};
+}
+
+export function setBenchmarksData(pid: string, benchmarks: Benchmarks): void {
+  const c = requireCache();
+  if (!c.profiles[pid]) return;
+  c.profiles[pid].benchmarks = { ...benchmarks, updated_at: new Date().toISOString() };
   persistProfile(pid);
 }
 
