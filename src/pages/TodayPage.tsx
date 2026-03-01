@@ -46,7 +46,7 @@ export default function TodayPage() {
     applyWorkoutUpdate,
   } = useWorkoutStore();
 
-  const { todayMood, loadTodayMood, logMood } = useMoodStore();
+  const { todayMood, moodError, loadTodayMood, logMood, clearMoodError } = useMoodStore();
 
   const [skipModal, setSkipModal] = useState<{ workoutId: number } | null>(null);
   const [skipReason, setSkipReason] = useState('');
@@ -173,14 +173,16 @@ export default function TodayPage() {
         <MoodCheckIn
           title="How are you feeling today?"
           collapsible
-          onSubmit={(data) =>
+          error={moodError}
+          onSubmit={(data) => {
+            clearMoodError();
             logMood(pid, data.mood, data.energy, data.sleep, 'daily', undefined, {
               sleepHours: data.sleepHours,
               stress: data.stress,
               restingHr: data.restingHr,
               weight: data.weight,
-            })
-          }
+            });
+          }}
         />
       ) : (
         <div className="mx-4 mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl glass px-4 py-3">

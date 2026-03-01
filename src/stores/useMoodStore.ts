@@ -19,6 +19,7 @@ interface MoodExtra {
 interface MoodStore {
   todayMood: MoodEntry | null;
   recentMood: MoodEntry[];
+  moodError: string | null;
 
   loadTodayMood: (pid: string) => void;
   loadRecentMood: (pid: string) => void;
@@ -32,19 +33,29 @@ interface MoodStore {
     workoutId?: number,
     extra?: MoodExtra
   ) => void;
+  clearMoodError: () => void;
 }
 
 export const useMoodStore = create<MoodStore>((set) => ({
   todayMood: null,
   recentMood: [],
+  moodError: null,
 
   loadTodayMood: (pid) => {
-    const mood = getTodayMood(pid, getTodayISO());
-    set({ todayMood: mood });
+    try {
+      const mood = getTodayMood(pid, getTodayISO());
+      set({ todayMood: mood });
+    } catch (err) {
+      console.error('[useMoodStore] loadTodayMood failed:', err);
+    }
   },
 
   loadRecentMood: (pid) => {
-    set({ recentMood: getRecentMoodEntries(pid, 14) });
+    try {
+      set({ recentMood: getRecentMoodEntries(pid, 14) });
+    } catch (err) {
+      console.error('[useMoodStore] loadRecentMood failed:', err);
+    }
   },
 
   checkWorkoutMood: (pid, workoutId) => {
@@ -52,9 +63,62 @@ export const useMoodStore = create<MoodStore>((set) => ({
   },
 
   logMood: (pid, mood, energy, sleepQuality, context, workoutId, extra) => {
-    saveMoodEntry(pid, mood, energy, sleepQuality, context, workoutId, extra);
-    const todayMood = getTodayMood(pid, getTodayISO());
-    const recentMood = getRecentMoodEntries(pid, 14);
-    set({ todayMood, recentMood });
+    console.log('[useMoodStore] logMood called:', { pid, mood, energy, sleepQuality, context });
+    set({ moodError: null });
+
+    try {
+      saveMoodEntry(pid, mood, energy, sleepQuality, context, workoutId, extra);
+      console.log('[useMoodStore] saveMoodEntry succeeded');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save check-in';
+      console.error('[useMoodStore] saveMoodEntry failed:', err);
+      set({ moodError: msg });
+      return;
+    }
+
+    // Build the entry directly from input instead of re-reading,
+    // so state updates even if the read-back has issues
+    const directEntry: MoodEntry = {
+      id: Date.now(),
+      date: getTodayISO(),
+      mood,
+      energy,
+      sleep_quality: sleepQuality,
+      sleep_hours: extra?.sleepHours,
+      stress: extra?.stress,
+      resting_hr: extra?.restingHr,
+      weight: extra?.weight,
+      weight_unit: extra?.weightUnit,
+      context,
+      workout_id: workoutId,
+      created_at: new Date().toISOString(),
+    };
+
+    // Try reading back from repo for accuracy, fallback to direct entry
+    let savedMood: MoodEntry | null = directEntry;
+    try {
+      if (context === 'daily') {
+        const fromRepo = getTodayMood(pid, getTodayISO());
+        if (fromRepo) savedMood = fromRepo;
+      }
+    } catch (err) {
+      console.error('[useMoodStore] getTodayMood read-back failed, using direct entry:', err);
+    }
+
+    let recentMood: MoodEntry[] = [];
+    try {
+      recentMood = getRecentMoodEntries(pid, 14);
+    } catch (err) {
+      console.error('[useMoodStore] getRecentMoodEntries failed:', err);
+    }
+
+    console.log('[useMoodStore] setting todayMood:', { context, savedMood: !!savedMood });
+    if (context === 'daily') {
+      set({ todayMood: savedMood, recentMood });
+    } else {
+      set({ recentMood });
+    }
   },
+
+  clearMoodError: () => set({ moodError: null }),
 }));

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, AlertCircle } from 'lucide-react';
 import Button from '@/components/ui/Button';
 
 interface MoodCheckInData {
@@ -15,6 +15,7 @@ interface MoodCheckInData {
 interface MoodCheckInProps {
   title?: string;
   collapsible?: boolean;
+  error?: string | null;
   onSubmit: (data: MoodCheckInData) => void;
 }
 
@@ -66,6 +67,7 @@ function RatingRow({
 export default function MoodCheckIn({
   title = 'How are you feeling today?',
   collapsible = false,
+  error: externalError,
   onSubmit,
 }: MoodCheckInProps) {
   const [mood, setMood] = useState(0);
@@ -77,21 +79,28 @@ export default function MoodCheckIn({
   const [restingHr, setRestingHr] = useState('');
   const [weight, setWeight] = useState('');
   const [expanded, setExpanded] = useState(!collapsible);
-  const [loading, setLoading] = useState(false);
+  const [localError, setLocalError] = useState('');
 
   const allSet = mood > 0 && energy > 0 && sleep > 0;
+  const displayError = externalError || localError;
 
   function handleSubmit() {
+    console.log('[MoodCheckIn] handleSubmit called, allSet:', allSet);
+    if (!allSet) return;
+
+    setLocalError('');
     const data: MoodCheckInData = { mood, energy, sleep };
     if (stress > 0) data.stress = stress;
     if (sleepHours) data.sleepHours = parseFloat(sleepHours);
     if (restingHr) data.restingHr = parseInt(restingHr, 10);
     if (weight) data.weight = parseFloat(weight);
-    setLoading(true);
+
     try {
       onSubmit(data);
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Failed to save check-in. Please try again.';
+      console.error('[MoodCheckIn] onSubmit error:', err);
+      setLocalError(msg);
     }
   }
 
@@ -101,6 +110,7 @@ export default function MoodCheckIn({
   if (collapsible && !expanded) {
     return (
       <button
+        type="button"
         onClick={() => setExpanded(true)}
         className="cursor-pointer glass rounded-2xl px-5 py-3 mx-4 mb-3 flex items-center justify-between w-[calc(100%-2rem)] animate-fade-in hover:bg-white/[0.06] transition-all duration-200"
       >
@@ -116,6 +126,7 @@ export default function MoodCheckIn({
         <h3 className="text-sm font-semibold">{title}</h3>
         {collapsible && (
           <button
+            type="button"
             onClick={() => setExpanded(false)}
             className="cursor-pointer text-xs text-muted hover:text-text transition-colors"
           >
@@ -185,6 +196,15 @@ export default function MoodCheckIn({
           </div>
         )}
       </div>
+
+      {/* Error display */}
+      {displayError && (
+        <div className="mt-3 flex items-center gap-2 rounded-lg bg-danger/15 border border-danger/20 px-3 py-2">
+          <AlertCircle className="h-4 w-4 text-danger flex-shrink-0" />
+          <p className="text-xs text-danger">{displayError}</p>
+        </div>
+      )}
+
       <div className="mt-4">
         {!allSet && (
           <p className="text-xs text-muted mb-2 text-center">
@@ -196,7 +216,6 @@ export default function MoodCheckIn({
           variant="primary"
           size="sm"
           disabled={!allSet}
-          loading={loading}
           onClick={handleSubmit}
         />
       </div>

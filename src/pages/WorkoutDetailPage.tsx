@@ -28,7 +28,7 @@ export default function WorkoutDetailPage() {
   const navigate = useNavigate();
   const pid = useAppStore((s) => s.activeProfileId)!;
   const { markComplete, markSkipped, updateNotes, updatePostWorkoutData } = useWorkoutStore();
-  const { checkWorkoutMood, logMood } = useMoodStore();
+  const { checkWorkoutMood, logMood, moodError, clearMoodError } = useMoodStore();
 
   const [workout, setWorkout] = useState<Workout | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -191,7 +191,9 @@ export default function WorkoutDetailPage() {
       {workout.status === 'pending' && !workoutMoodLogged && (
         <MoodCheckIn
           title="Pre-workout check-in"
+          error={moodError}
           onSubmit={(data) => {
+            clearMoodError();
             logMood(pid, data.mood, data.energy, data.sleep, 'pre_workout', workout.id, {
               stress: data.stress,
             });
