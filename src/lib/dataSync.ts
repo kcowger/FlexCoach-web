@@ -260,36 +260,59 @@ export function getChatData(pid: string): ChatMessage[] {
   return requireCache().chat[pid] || [];
 }
 
+const MAX_CHAT_MESSAGES = 200;
+
 export function setChatData(pid: string, messages: ChatMessage[]): void {
   const c = requireCache();
-  c.chat[pid] = messages;
+  // Cap stored messages to prevent unbounded Firestore document growth
+  c.chat[pid] = messages.length > MAX_CHAT_MESSAGES
+    ? messages.slice(-MAX_CHAT_MESSAGES)
+    : messages;
   persistChat(pid);
 }
 
-// ── Persistence (fire-and-forget writes) ─────────────────────────────
+// ── Sync error tracking ──────────────────────────────────────────────
+
+let lastSyncError: string | null = null;
+
+export function getSyncError(): string | null {
+  return lastSyncError;
+}
+
+export function clearSyncError(): void {
+  lastSyncError = null;
+}
+
+function handleSyncError(context: string, err: unknown): void {
+  const msg = err instanceof Error ? err.message : String(err);
+  lastSyncError = `Failed to sync ${context}: ${msg}`;
+  console.error(`[dataSync] ${lastSyncError}`);
+}
+
+// ── Persistence (background writes with error tracking) ──────────────
 
 function persistMeta(): void {
   const c = cache;
   if (!c) return;
-  setDoc(metaRef(c.uid), c.meta).catch(() => {});
+  setDoc(metaRef(c.uid), c.meta).catch((e) => handleSyncError('account data', e));
 }
 
 function persistProfile(pid: string): void {
   const c = cache;
   if (!c || !c.profiles[pid]) return;
-  setDoc(profileRef(c.uid, pid), c.profiles[pid]).catch(() => {});
+  setDoc(profileRef(c.uid, pid), c.profiles[pid]).catch((e) => handleSyncError('profile', e));
 }
 
 function persistWorkouts(pid: string): void {
   const c = cache;
   if (!c) return;
-  setDoc(workoutsRef(c.uid, pid), { items: c.workouts[pid] || [] }).catch(() => {});
+  setDoc(workoutsRef(c.uid, pid), { items: c.workouts[pid] || [] }).catch((e) => handleSyncError('workouts', e));
 }
 
 function persistChat(pid: string): void {
   const c = cache;
   if (!c) return;
-  setDoc(chatRef(c.uid, pid), { messages: c.chat[pid] || [] }).catch(() => {});
+  setDoc(chatRef(c.uid, pid), { messages: c.chat[pid] || [] }).catch((e) => handleSyncError('chat', e));
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────

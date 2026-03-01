@@ -33,13 +33,29 @@ export async function createMessage(
     }),
   });
 
+  if (!response.ok) {
+    let errMsg = `API error: ${response.status}`;
+    try {
+      const errorData = await response.json();
+      if (errorData.error?.message) errMsg = errorData.error.message;
+    } catch {
+      // Could not parse error body
+    }
+    throw new Error(errMsg);
+  }
+
   const data = await response.json();
 
   if (data.error) {
     throw new Error(data.error.message || 'Claude API error');
   }
 
-  return data.content[0].text;
+  const text = data?.content?.[0]?.text;
+  if (typeof text !== 'string') {
+    throw new Error('Unexpected API response format');
+  }
+
+  return text;
 }
 
 export async function streamMessage(
