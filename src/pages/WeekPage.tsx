@@ -72,7 +72,7 @@ export default function WeekPage() {
   const weekRangeLabel = `${formatDateShort(weekStart)} - ${formatDateShort(weekEnd)}`;
 
   return (
-    <div className="bg-background text-text min-h-full">
+    <div className="bg-transparent text-text min-h-full">
       <LoadingOverlay
         visible={isGenerating}
         message="Generating this week's plan..."
@@ -80,11 +80,11 @@ export default function WeekPage() {
 
       {/* Header */}
       <div className="px-6 pt-6 pb-4">
-        <h1 className="text-xl font-bold text-text mb-1">This Week</h1>
+        <h1 className="text-xl font-bold gradient-text mb-1">This Week</h1>
         <div className="flex items-center gap-3">
           <button
             onClick={handlePrevWeek}
-            className="cursor-pointer rounded-lg bg-surface p-1.5 text-muted hover:text-text transition-colors"
+            className="cursor-pointer rounded-lg glass p-1.5 text-muted hover:text-text transition-all duration-200"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -93,7 +93,7 @@ export default function WeekPage() {
           </span>
           <button
             onClick={handleNextWeek}
-            className="cursor-pointer rounded-lg bg-surface p-1.5 text-muted hover:text-text transition-colors"
+            className="cursor-pointer rounded-lg glass p-1.5 text-muted hover:text-text transition-all duration-200"
           >
             <ChevronRight className="h-5 w-5" />
           </button>
@@ -102,7 +102,7 @@ export default function WeekPage() {
 
       {/* Error Banner */}
       {generationError && (
-        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl bg-danger/20 px-4 py-3">
+        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl bg-danger/15 border border-danger/20 px-4 py-3 animate-fade-in">
           <AlertCircle className="h-5 w-5 text-danger flex-shrink-0" />
           <p className="text-sm text-danger">{generationError}</p>
         </div>
@@ -170,7 +170,7 @@ export default function WeekPage() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSkipConfirm();
             }}
-            className="bg-surface text-text border border-surface-light rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none"
+            className="bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
             autoFocus
           />
           <div className="flex gap-3 justify-end">

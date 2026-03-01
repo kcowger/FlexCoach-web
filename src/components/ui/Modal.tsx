@@ -13,11 +13,11 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="relative mx-4 w-full max-w-lg rounded-2xl bg-surface p-6"
+        className="relative mx-4 w-full max-w-lg rounded-2xl glass-strong p-6 animate-scale-in"
         onClick={(e) => e.stopPropagation()}
       >
         <button

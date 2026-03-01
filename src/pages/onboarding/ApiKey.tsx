@@ -53,12 +53,12 @@ export default function ApiKey() {
   }
 
   return (
-    <div className="bg-background text-text min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="flex items-center px-4 pt-6">
         <button
           onClick={() => navigate('/onboarding/welcome')}
-          className="cursor-pointer rounded-xl bg-surface p-2.5 text-muted hover:text-text transition-colors"
+          className="cursor-pointer rounded-xl glass p-2.5 text-muted hover:text-text transition-all duration-200"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -87,7 +87,7 @@ export default function ApiKey() {
               value={apiKey}
               onChange={(e) => setApiKey(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="bg-surface text-text border border-surface-light rounded-xl px-4 py-3 w-full pr-12 focus:ring-2 focus:ring-primary focus:outline-none"
+              className="bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full pr-12 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
               autoFocus
             />
             <button

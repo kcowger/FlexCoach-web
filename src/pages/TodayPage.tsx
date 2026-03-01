@@ -11,6 +11,13 @@ import Modal from '@/components/ui/Modal';
 import LoadingOverlay from '@/components/ui/LoadingOverlay';
 import { formatDate, getTodayISO } from '@/utils/date';
 
+function getGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Good morning';
+  if (hour < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+
 export default function TodayPage() {
   const navigate = useNavigate();
   const pid = useAppStore((s) => s.activeProfileId)!;
@@ -77,7 +84,7 @@ export default function TodayPage() {
   const today = getTodayISO();
 
   return (
-    <div className="bg-background text-text min-h-full">
+    <div className="bg-transparent text-text min-h-full">
       <LoadingOverlay
         visible={isGenerating}
         message="Generating your plan..."
@@ -86,12 +93,12 @@ export default function TodayPage() {
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-6 pb-4">
         <div>
-          <h1 className="text-xl font-bold text-text">Today</h1>
+          <h1 className="text-xl font-bold gradient-text">{getGreeting()}</h1>
           <p className="text-sm text-muted">{formatDate(today)}</p>
         </div>
         <button
           onClick={handleRefresh}
-          className="cursor-pointer rounded-xl bg-surface p-2.5 text-muted hover:text-text transition-colors"
+          className="cursor-pointer rounded-xl glass p-2.5 text-muted hover:text-text transition-all duration-200"
           title="Refresh"
         >
           <RefreshCw className="h-5 w-5" />
@@ -112,7 +119,7 @@ export default function TodayPage() {
           }
         />
       ) : (
-        <div className="mx-4 mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-surface px-4 py-3">
+        <div className="mx-4 mb-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl glass px-4 py-3">
           <span className="text-xs text-muted">Today's check-in:</span>
           <span className="text-xs font-medium">
             Mood {todayMood.mood}/5 &middot; Energy {todayMood.energy}/5 &middot; Sleep {todayMood.sleep_quality}/5
@@ -124,7 +131,7 @@ export default function TodayPage() {
 
       {/* Error Banner */}
       {generationError && (
-        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl bg-danger/20 px-4 py-3">
+        <div className="mx-4 mb-3 flex items-center gap-2 rounded-xl bg-danger/15 border border-danger/20 px-4 py-3 animate-fade-in">
           <AlertCircle className="h-5 w-5 text-danger flex-shrink-0" />
           <p className="text-sm text-danger">{generationError}</p>
         </div>
@@ -132,40 +139,44 @@ export default function TodayPage() {
 
       {/* No Block State */}
       {!currentBlock && !isGenerating && (
-        <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
+        <div className="flex flex-col items-center gap-4 px-6 py-12 text-center animate-fade-in">
           <p className="text-muted">
             No training block found. Generate a training block to get started.
           </p>
-          <Button
-            title="Generate Training Block"
-            variant="primary"
-            size="lg"
-            onClick={handleGenerateBlock}
-            loading={isGenerating}
-          />
+          <div className="w-full max-w-xs">
+            <Button
+              title="Generate Training Block"
+              variant="primary"
+              size="lg"
+              onClick={handleGenerateBlock}
+              loading={isGenerating}
+            />
+          </div>
         </div>
       )}
 
       {/* Block Exists but No Today Workouts */}
       {currentBlock && todayWorkouts.length === 0 && !isGenerating && (
-        <div className="flex flex-col items-center gap-4 px-6 py-12 text-center">
+        <div className="flex flex-col items-center gap-4 px-6 py-12 text-center animate-fade-in">
           <p className="text-muted">
             No workouts scheduled for today. Generate this week's plan.
           </p>
-          <Button
-            title="Generate This Week"
-            variant="primary"
-            size="lg"
-            onClick={handleGenerateWeek}
-            loading={isGenerating}
-          />
+          <div className="w-full max-w-xs">
+            <Button
+              title="Generate This Week"
+              variant="primary"
+              size="lg"
+              onClick={handleGenerateWeek}
+              loading={isGenerating}
+            />
+          </div>
         </div>
       )}
 
       {/* All Completed Congrats */}
       {allCompleted && (
-        <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-success/20 px-4 py-4">
-          <PartyPopper className="h-6 w-6 text-success flex-shrink-0" />
+        <div className="mx-4 mb-3 flex items-center gap-3 rounded-xl bg-success/10 border border-success/20 px-4 py-4 animate-fade-in">
+          <PartyPopper className="h-6 w-6 text-success flex-shrink-0 drop-shadow-[0_0_8px_rgba(34,197,94,0.4)]" />
           <div>
             <p className="font-semibold text-success">All done for today!</p>
             <p className="text-sm text-success/80">
@@ -209,7 +220,7 @@ export default function TodayPage() {
             onKeyDown={(e) => {
               if (e.key === 'Enter') handleSkipConfirm();
             }}
-            className="bg-surface text-text border border-surface-light rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none"
+            className="bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
             autoFocus
           />
           <div className="flex gap-3 justify-end">

@@ -29,7 +29,7 @@ export default function PostWorkoutCheckIn({
   const [duration, setDuration] = useState(String(plannedDuration));
 
   return (
-    <div className="bg-surface rounded-2xl p-4 mx-4 mb-3">
+    <div className="glass rounded-2xl p-5 mx-4 mb-3 animate-fade-in">
       <h3 className="text-sm font-semibold mb-1">How did it go?</h3>
       <p className="text-xs text-muted mb-4">Rate your effort and actual duration.</p>
 
@@ -44,14 +44,14 @@ export default function PostWorkoutCheckIn({
               key={n}
               type="button"
               onClick={() => setRpe(n)}
-              className={`cursor-pointer h-9 w-9 rounded-full text-sm font-medium transition-colors ${
+              className={`cursor-pointer h-10 w-10 rounded-full text-sm font-medium transition-all duration-200 ${
                 rpe === n
                   ? n <= 3
-                    ? 'bg-success text-white'
+                    ? 'bg-success text-white shadow-[0_0_12px_rgba(34,197,94,0.4)]'
                     : n <= 6
-                      ? 'bg-warning text-white'
-                      : 'bg-danger text-white'
-                  : 'bg-surface-light text-muted hover:text-text'
+                      ? 'bg-warning text-white shadow-[0_0_12px_rgba(245,158,11,0.4)]'
+                      : 'bg-danger text-white shadow-[0_0_12px_rgba(239,68,68,0.4)]'
+                  : 'bg-white/5 border border-white/10 text-muted hover:text-text hover:border-white/20'
               }`}
             >
               {n}
@@ -74,7 +74,7 @@ export default function PostWorkoutCheckIn({
           max="600"
           value={duration}
           onChange={(e) => setDuration(e.target.value)}
-          className="bg-surface-light text-text rounded-lg px-3 py-2 w-28 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+          className="bg-white/5 border border-white/10 text-text rounded-lg px-3 py-2 w-28 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
         />
         {plannedDuration > 0 && parseInt(duration, 10) !== plannedDuration && (
           <span className="text-xs text-muted ml-2">

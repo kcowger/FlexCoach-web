@@ -10,14 +10,18 @@ interface ButtonProps {
 }
 
 const variantClasses: Record<NonNullable<ButtonProps['variant']>, string> = {
-  primary: 'bg-primary text-text hover:bg-primary/80',
-  secondary: 'bg-surface-light text-text hover:bg-surface-light/80',
-  outline: 'bg-transparent border border-surface-light text-text hover:bg-surface-light/40',
-  danger: 'bg-danger text-text hover:bg-danger/80',
+  primary:
+    'bg-gradient-to-r from-primary to-indigo-500 text-white shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:brightness-110',
+  secondary:
+    'bg-surface-light/80 text-text hover:bg-surface-light',
+  outline:
+    'bg-transparent border border-white/10 text-text hover:bg-white/5',
+  danger:
+    'bg-gradient-to-r from-danger to-rose-600 text-white shadow-lg shadow-danger/25 hover:shadow-danger/40 hover:brightness-110',
 };
 
 const sizeClasses: Record<NonNullable<ButtonProps['size']>, string> = {
-  sm: 'px-3 py-1.5 text-sm',
+  sm: 'px-4 py-2 text-sm',
   md: 'px-5 py-2.5 text-base',
   lg: 'px-7 py-3.5 text-lg',
 };
@@ -35,9 +39,10 @@ export default function Button({
       onClick={onClick}
       disabled={disabled || loading}
       className={`
-        inline-flex items-center justify-center gap-2 rounded-xl font-semibold
-        transition-colors duration-150
-        cursor-pointer disabled:cursor-not-allowed disabled:opacity-50
+        w-full inline-flex items-center justify-center gap-2 rounded-xl font-semibold
+        transition-all duration-200
+        cursor-pointer active:scale-[0.98]
+        disabled:cursor-not-allowed disabled:opacity-30 disabled:active:scale-100
         ${variantClasses[variant]}
         ${sizeClasses[size]}
       `}

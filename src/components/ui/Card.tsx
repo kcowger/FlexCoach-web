@@ -7,7 +7,9 @@ interface CardProps {
 
 export default function Card({ children, className = '' }: CardProps) {
   return (
-    <div className={`bg-surface rounded-2xl p-4 mx-4 mb-3 ${className}`}>
+    <div
+      className={`glass rounded-2xl p-5 mx-4 mb-3 animate-fade-in ${className}`}
+    >
       {children}
     </div>
   );

@@ -1,7 +1,6 @@
 import { CheckCircle2, XCircle } from 'lucide-react';
 import type { Workout } from '@/types';
 import Badge from '@/components/ui/Badge';
-import Card from '@/components/ui/Card';
 import { formatDuration } from '@/utils/date';
 
 interface WorkoutCardProps {
@@ -17,6 +16,16 @@ const TIME_SLOT_LABELS: Record<string, string> = {
   evening: 'Evening',
 };
 
+const DISCIPLINE_COLORS: Record<string, string> = {
+  swim: 'border-l-swim',
+  bike: 'border-l-bike',
+  run: 'border-l-run',
+  strength: 'border-l-strength',
+  rest: 'border-l-rest',
+  recovery: 'border-l-recovery',
+  brick: 'border-l-brick',
+};
+
 export default function WorkoutCard({
   workout,
   onClick,
@@ -24,15 +33,20 @@ export default function WorkoutCard({
   onSkip,
 }: WorkoutCardProps) {
   const isDone = workout.status === 'completed' || workout.status === 'skipped';
+  const accentClass = DISCIPLINE_COLORS[workout.discipline] || 'border-l-primary';
 
   return (
-    <Card className={isDone ? 'opacity-60' : ''}>
+    <div
+      className={`glass rounded-2xl p-5 mx-4 mb-3 border-l-3 ${accentClass} animate-fade-in transition-all duration-200 hover:bg-white/[0.06] ${
+        isDone ? 'opacity-50' : ''
+      }`}
+    >
       <div className="cursor-pointer" onClick={onClick}>
         {/* Header row: badge + status icon */}
         <div className="flex items-center justify-between mb-2">
           <Badge discipline={workout.discipline} size="sm" />
           {workout.status === 'completed' && (
-            <CheckCircle2 className="h-5 w-5 text-success" />
+            <CheckCircle2 className="h-5 w-5 text-success drop-shadow-[0_0_6px_rgba(34,197,94,0.4)]" />
           )}
           {workout.status === 'skipped' && (
             <XCircle className="h-5 w-5 text-danger" />
@@ -47,7 +61,7 @@ export default function WorkoutCard({
         {/* Duration + time slot */}
         <div className="flex items-center gap-3 text-sm text-muted mb-2">
           <span>{formatDuration(workout.duration_minutes)}</span>
-          <span className="text-surface-light">|</span>
+          <span className="text-white/10">|</span>
           <span>{TIME_SLOT_LABELS[workout.time_slot] ?? workout.time_slot}</span>
         </div>
 
@@ -65,7 +79,7 @@ export default function WorkoutCard({
               e.stopPropagation();
               onComplete?.();
             }}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-success/20 py-2 text-sm font-medium text-success cursor-pointer hover:bg-success/30 transition-colors"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-success/15 border border-success/20 py-2.5 text-sm font-medium text-success cursor-pointer hover:bg-success/25 transition-all duration-200 active:scale-[0.98]"
           >
             <CheckCircle2 className="h-4 w-4" />
             Complete
@@ -75,13 +89,13 @@ export default function WorkoutCard({
               e.stopPropagation();
               onSkip?.();
             }}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-danger/20 py-2 text-sm font-medium text-danger cursor-pointer hover:bg-danger/30 transition-colors"
+            className="flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-danger/15 border border-danger/20 py-2.5 text-sm font-medium text-danger cursor-pointer hover:bg-danger/25 transition-all duration-200 active:scale-[0.98]"
           >
             <XCircle className="h-4 w-4" />
             Skip
           </button>
         </div>
       )}
-    </Card>
+    </div>
   );
 }

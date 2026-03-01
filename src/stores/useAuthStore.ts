@@ -41,9 +41,8 @@ export const useAuthStore = create<AuthStore>((set) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
-      const cred = await signInWithEmailAndPassword(auth, email, password);
-      await loadUserData(cred.user.uid);
-      set({ user: cred.user, isLoading: false });
+      await signInWithEmailAndPassword(auth, email, password);
+      // Don't set user or load data here — onAuthStateChanged handles it
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Login failed';
       // Clean up Firebase error messages

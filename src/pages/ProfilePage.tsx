@@ -51,9 +51,9 @@ import type {
 } from '@/types';
 
 const inputClasses =
-  'bg-surface text-text border border-surface-light rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none';
+  'bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all';
 const selectClasses =
-  'bg-surface text-text border border-surface-light rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none';
+  'bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all';
 
 export default function ProfilePage() {
   const navigate = useNavigate();
@@ -327,7 +327,7 @@ export default function ProfilePage() {
 
   if (!profile) {
     return (
-      <div className="bg-background text-text min-h-full flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <p className="text-muted">Loading profile...</p>
       </div>
     );
@@ -337,10 +337,10 @@ export default function ProfilePage() {
   const priorityOptions: EventPriority[] = ['A', 'B', 'C'];
 
   return (
-    <div className="bg-background text-text min-h-full pb-8">
+    <div className="min-h-full pb-8">
       {/* Header */}
       <div className="px-6 pt-6 pb-4">
-        <h1 className="text-xl font-bold text-text">Profile</h1>
+        <h1 className="text-xl font-bold gradient-text">Profile</h1>
       </div>
 
       {/* 1. Profile Info */}
@@ -444,7 +444,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setWeightUnit(weightUnit === 'lbs' ? 'kg' : 'lbs')}
-                className="cursor-pointer rounded-xl bg-surface border border-surface-light px-4 py-3 text-sm font-medium text-muted hover:text-text transition-colors min-w-[60px]"
+                className="cursor-pointer rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm font-medium text-muted hover:text-text transition-all duration-200 min-w-[60px]"
               >
                 {weightUnit}
               </button>
@@ -489,7 +489,7 @@ export default function ProfilePage() {
               <button
                 type="button"
                 onClick={() => setHeightUnit(heightUnit === 'imperial' ? 'metric' : 'imperial')}
-                className="cursor-pointer rounded-xl bg-surface border border-surface-light px-4 py-3 text-sm font-medium text-muted hover:text-text transition-colors min-w-[60px]"
+                className="cursor-pointer rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm font-medium text-muted hover:text-text transition-all duration-200 min-w-[60px]"
               >
                 {heightUnit === 'imperial' ? 'ft/in' : 'cm'}
               </button>
@@ -631,7 +631,7 @@ export default function ProfilePage() {
               className={`cursor-pointer rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
                 equipment[name]
                   ? 'bg-primary/20 text-primary border border-primary/40'
-                  : 'bg-surface-light text-muted border border-surface-light'
+                  : 'bg-white/5 text-muted border border-white/10'
               }`}
             >
               {name}
@@ -659,12 +659,12 @@ export default function ProfilePage() {
             value={customEquipment}
             onChange={(e) => setCustomEquipment(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') addCustomEquipmentItem(); }}
-            className="bg-surface text-text border border-surface-light rounded-xl px-3 py-2 text-sm flex-1 focus:ring-2 focus:ring-primary focus:outline-none"
+            className="bg-white/5 text-text border border-white/10 rounded-xl px-3 py-2 text-sm flex-1 focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
           />
           <button
             onClick={addCustomEquipmentItem}
             disabled={!customEquipment.trim()}
-            className="cursor-pointer rounded-xl bg-surface border border-surface-light px-3 text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="cursor-pointer rounded-xl bg-white/5 border border-white/10 px-3 text-muted hover:text-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="h-4 w-4" />
           </button>
@@ -695,7 +695,7 @@ export default function ProfilePage() {
           {injuries.map((injury, index) => (
             <div
               key={index}
-              className="flex items-start justify-between rounded-xl bg-surface-light/50 px-3 py-2"
+              className="flex items-start justify-between rounded-xl bg-white/5 px-3 py-2"
             >
               <div className="flex-1">
                 <p className="text-sm font-medium text-text">
@@ -748,7 +748,7 @@ export default function ProfilePage() {
           {events.map((event) => (
             <div
               key={event.id}
-              className="flex items-center justify-between rounded-xl bg-surface-light/50 px-3 py-2"
+              className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2"
             >
               <div className="flex-1">
                 <div className="flex items-center gap-2">
@@ -812,7 +812,7 @@ export default function ProfilePage() {
                           className={`cursor-pointer w-8 h-8 rounded-lg transition-colors ${
                             available
                               ? 'bg-primary/30 text-primary border border-primary/40'
-                              : 'bg-surface-light text-muted border border-transparent'
+                              : 'bg-white/5 text-muted border border-transparent'
                           }`}
                           title={`${DAY_LABELS[dayIdx]} ${slot}`}
                         >
@@ -842,7 +842,7 @@ export default function ProfilePage() {
             {recentMood.slice(0, 10).map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-center justify-between rounded-xl bg-surface-light/50 px-3 py-2"
+                className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2"
               >
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted w-20">{entry.date}</span>
@@ -958,7 +958,7 @@ export default function ProfilePage() {
                   className={`cursor-pointer flex-1 rounded-xl py-2 text-sm font-semibold transition-colors ${
                     newEventPriority === p
                       ? 'bg-primary text-white'
-                      : 'bg-surface-light text-muted'
+                      : 'bg-white/5 text-muted'
                   }`}
                 >
                   {p} Race

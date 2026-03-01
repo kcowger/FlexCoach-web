@@ -59,12 +59,12 @@ export default function Schedule() {
   }
 
   return (
-    <div className="bg-background text-text min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="flex items-center px-4 pt-6">
         <button
           onClick={() => navigate(-1)}
-          className="cursor-pointer rounded-xl bg-surface p-2.5 text-muted hover:text-text transition-colors"
+          className="cursor-pointer rounded-xl glass p-2.5 text-muted hover:text-text transition-all duration-200"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -96,7 +96,7 @@ export default function Schedule() {
                   <button
                     onClick={() => updateDay(index, { available: !day.available })}
                     className={`cursor-pointer relative inline-flex h-7 w-12 items-center rounded-full transition-colors ${
-                      day.available ? 'bg-primary' : 'bg-surface-light'
+                      day.available ? 'bg-primary' : 'bg-white/10'
                     }`}
                   >
                     <span
@@ -120,7 +120,7 @@ export default function Schedule() {
                             className={`cursor-pointer flex-1 rounded-lg px-2 py-1.5 text-xs font-medium border transition-colors ${
                               day.timeSlot === slot
                                 ? 'border-primary bg-primary/20 text-text'
-                                : 'border-surface-light bg-surface text-muted hover:text-text'
+                                : 'border-white/10 bg-white/5 text-muted hover:text-text'
                             }`}
                           >
                             {TIME_SLOT_LABELS[slot]}
@@ -140,7 +140,7 @@ export default function Schedule() {
                             className={`cursor-pointer flex-1 rounded-lg px-2 py-1.5 text-xs font-medium border transition-colors ${
                               day.duration === mins
                                 ? 'border-primary bg-primary/20 text-text'
-                                : 'border-surface-light bg-surface text-muted hover:text-text'
+                                : 'border-white/10 bg-white/5 text-muted hover:text-text'
                             }`}
                           >
                             {mins}m
@@ -156,7 +156,7 @@ export default function Schedule() {
                             const v = Number(e.target.value);
                             if (v > 0) updateDay(index, { duration: v });
                           }}
-                          className="w-16 rounded-lg border border-surface-light bg-surface px-2 py-1.5 text-xs text-text focus:ring-2 focus:ring-primary focus:outline-none"
+                          className="w-16 rounded-lg border border-white/10 bg-white/5 px-2 py-1.5 text-xs text-text focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
                         />
                       </div>
                     </div>

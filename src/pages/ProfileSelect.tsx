@@ -68,16 +68,16 @@ export default function ProfileSelect() {
   }
 
   const inputClasses =
-    'bg-surface text-text border border-surface-light rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none';
+    'bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all';
 
   return (
-    <div className="bg-background text-text min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-6 pb-2">
-        <h1 className="text-2xl font-bold">Who's training?</h1>
+        <h1 className="text-2xl font-bold gradient-text">Who's training?</h1>
         <button
           onClick={handleLogout}
-          className="cursor-pointer rounded-xl bg-surface p-2.5 text-muted hover:text-text transition-colors"
+          className="cursor-pointer rounded-xl glass p-2.5 text-muted hover:text-text transition-all duration-200"
           title="Sign Out"
         >
           <LogOut className="h-5 w-5" />
@@ -123,7 +123,7 @@ export default function ProfileSelect() {
             onClick={() => setShowNewProfileModal(true)}
             className="cursor-pointer flex flex-col items-center justify-center gap-2 w-full py-4 text-muted hover:text-primary transition-colors"
           >
-            <div className="rounded-full border-2 border-dashed border-surface-light p-3">
+            <div className="rounded-full border-2 border-dashed border-white/15 p-3">
               <Plus className="h-6 w-6" />
             </div>
             <span className="text-sm font-medium">Add Profile</span>

@@ -16,7 +16,7 @@ export default function Welcome() {
   }
 
   return (
-    <div className="bg-background text-text min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Step indicator */}
       <div className="px-4 pt-6">
         <p className="text-sm text-muted text-center">Step 1 of 7</p>
@@ -24,16 +24,16 @@ export default function Welcome() {
 
       {/* Content */}
       <div className="flex-1 flex flex-col items-center justify-center max-w-lg mx-auto px-4 py-8">
-        <div className="flex flex-col items-center gap-6 text-center">
+        <div className="flex flex-col items-center gap-6 text-center animate-fade-in">
           {/* Icon */}
-          <div className="rounded-full bg-primary/20 p-6">
+          <div className="rounded-full bg-primary/15 p-6 glow-primary">
             <Dumbbell className="h-12 w-12 text-primary" />
           </div>
 
           {/* Title & tagline */}
           <div className="flex flex-col gap-2">
-            <h1 className="text-4xl font-bold tracking-tight">FlexCoach</h1>
-            <p className="text-lg text-primary font-medium">
+            <h1 className="text-4xl font-bold tracking-tight gradient-text">FlexCoach</h1>
+            <p className="text-lg text-primary-light font-medium">
               Your AI-powered training coach
             </p>
           </div>

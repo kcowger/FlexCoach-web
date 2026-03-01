@@ -49,12 +49,12 @@ export default function Goals() {
   const customGoals = selectedGoals.filter((g) => !SUGGESTED_GOALS.includes(g));
 
   return (
-    <div className="bg-background text-text min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Header */}
       <div className="flex items-center px-4 pt-6">
         <button
           onClick={() => navigate(-1)}
-          className="cursor-pointer rounded-xl bg-surface p-2.5 text-muted hover:text-text transition-colors"
+          className="cursor-pointer rounded-xl glass p-2.5 text-muted hover:text-text transition-all duration-200"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -84,7 +84,7 @@ export default function Goals() {
                 className={`cursor-pointer rounded-xl px-4 py-2.5 text-sm font-medium border transition-colors ${
                   isSelected
                     ? 'border-primary bg-primary/20 text-text'
-                    : 'border-surface-light bg-surface text-muted hover:text-text'
+                    : 'border-white/10 bg-white/5 text-muted hover:text-text'
                 }`}
               >
                 {goal}
@@ -121,12 +121,12 @@ export default function Goals() {
             value={customGoal}
             onChange={(e) => setCustomGoal(e.target.value)}
             onKeyDown={handleKeyDown}
-            className="bg-surface text-text border border-surface-light rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none"
+            className="bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all"
           />
           <button
             onClick={addCustomGoal}
             disabled={!customGoal.trim()}
-            className="cursor-pointer rounded-xl bg-surface border border-surface-light px-3 text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="cursor-pointer rounded-xl bg-white/5 border border-white/10 px-3 text-muted hover:text-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Plus className="h-5 w-5" />
           </button>

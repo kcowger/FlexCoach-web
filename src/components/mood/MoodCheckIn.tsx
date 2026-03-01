@@ -24,25 +24,30 @@ function RatingRow({
   value,
   onChange,
   labels = LABELS,
+  required = false,
 }: {
   label: string;
   value: number;
   onChange: (v: number) => void;
   labels?: string[];
+  required?: boolean;
 }) {
   return (
     <div className="flex items-center gap-3">
-      <span className="text-sm text-muted w-16">{label}</span>
+      <span className="text-sm text-muted w-16">
+        {label}
+        {required && <span className="text-primary ml-0.5">*</span>}
+      </span>
       <div className="flex gap-2">
         {[1, 2, 3, 4, 5].map((n) => (
           <button
             key={n}
             type="button"
             onClick={() => onChange(n)}
-            className={`cursor-pointer h-9 w-9 rounded-full text-sm font-medium transition-colors ${
+            className={`cursor-pointer h-10 w-10 rounded-full text-sm font-medium transition-all duration-200 ${
               value === n
-                ? 'bg-primary text-white'
-                : 'bg-surface-light text-muted hover:text-text'
+                ? 'bg-primary text-white shadow-[0_0_12px_rgba(59,130,246,0.4)]'
+                : 'bg-white/5 border border-white/10 text-muted hover:text-text hover:border-white/20'
             }`}
           >
             {n}
@@ -80,13 +85,16 @@ export default function MoodCheckIn({
     onSubmit(data);
   }
 
+  const inputClasses =
+    'bg-white/5 border border-white/10 text-text rounded-lg px-3 py-2 w-24 text-sm focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all';
+
   return (
-    <div className="bg-surface rounded-2xl p-4 mx-4 mb-3">
+    <div className="glass rounded-2xl p-5 mx-4 mb-3 animate-fade-in">
       <h3 className="text-sm font-semibold mb-4">{title}</h3>
       <div className="flex flex-col gap-3">
-        <RatingRow label="Mood" value={mood} onChange={setMood} />
-        <RatingRow label="Energy" value={energy} onChange={setEnergy} />
-        <RatingRow label="Sleep" value={sleep} onChange={setSleep} />
+        <RatingRow label="Mood" value={mood} onChange={setMood} required />
+        <RatingRow label="Energy" value={energy} onChange={setEnergy} required />
+        <RatingRow label="Sleep" value={sleep} onChange={setSleep} required />
         <RatingRow label="Stress" value={stress} onChange={setStress} labels={STRESS_LABELS} />
 
         {/* Sleep hours inline */}
@@ -100,7 +108,7 @@ export default function MoodCheckIn({
             placeholder="e.g. 7.5"
             value={sleepHours}
             onChange={(e) => setSleepHours(e.target.value)}
-            className="bg-surface-light text-text rounded-lg px-3 py-2 w-24 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+            className={inputClasses}
           />
           <span className="text-xs text-muted/60">hrs slept</span>
         </div>
@@ -110,12 +118,12 @@ export default function MoodCheckIn({
           <button
             type="button"
             onClick={() => setShowMore(true)}
-            className="cursor-pointer text-xs text-primary hover:text-primary/80 text-left"
+            className="cursor-pointer text-xs text-primary hover:text-primary-light text-left transition-colors"
           >
             + Add resting HR or weight
           </button>
         ) : (
-          <div className="flex flex-col gap-3 border-t border-surface-light pt-3">
+          <div className="flex flex-col gap-3 border-t border-white/5 pt-3">
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted w-16">Rest HR</span>
               <input
@@ -125,7 +133,7 @@ export default function MoodCheckIn({
                 placeholder="e.g. 58"
                 value={restingHr}
                 onChange={(e) => setRestingHr(e.target.value)}
-                className="bg-surface-light text-text rounded-lg px-3 py-2 w-24 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                className={inputClasses}
               />
               <span className="text-xs text-muted/60">bpm</span>
             </div>
@@ -138,7 +146,7 @@ export default function MoodCheckIn({
                 placeholder="e.g. 165"
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
-                className="bg-surface-light text-text rounded-lg px-3 py-2 w-24 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+                className={inputClasses}
               />
               <span className="text-xs text-muted/60">lbs</span>
             </div>
@@ -146,6 +154,11 @@ export default function MoodCheckIn({
         )}
       </div>
       <div className="mt-4">
+        {!allSet && (
+          <p className="text-xs text-muted mb-2 text-center">
+            Select mood, energy, and sleep to continue
+          </p>
+        )}
         <Button
           title="Log Check-in"
           variant="primary"

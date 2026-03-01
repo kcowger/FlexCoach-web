@@ -21,7 +21,7 @@ const TIME_SLOT_LABELS: Record<string, string> = {
 };
 
 const inputClasses =
-  'bg-surface text-text border border-surface-light rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary focus:outline-none';
+  'bg-white/5 text-text border border-white/10 rounded-xl px-4 py-3 w-full focus:ring-2 focus:ring-primary/50 focus:border-primary/50 focus:outline-none transition-all';
 
 export default function WorkoutDetailPage() {
   const { workoutId } = useParams<{ workoutId: string }>();
@@ -89,7 +89,7 @@ export default function WorkoutDetailPage() {
 
   if (notFound) {
     return (
-      <div className="bg-background text-text min-h-full flex flex-col items-center justify-center gap-4 px-6">
+      <div className="min-h-full flex flex-col items-center justify-center gap-4 px-6">
         <AlertCircle className="h-12 w-12 text-muted" />
         <p className="text-lg font-semibold text-text">Workout not found</p>
         <p className="text-sm text-muted">
@@ -107,19 +107,19 @@ export default function WorkoutDetailPage() {
 
   if (!workout) {
     return (
-      <div className="bg-background text-text min-h-full flex items-center justify-center">
+      <div className="min-h-full flex items-center justify-center">
         <p className="text-muted">Loading...</p>
       </div>
     );
   }
 
   return (
-    <div className="bg-background text-text min-h-full pb-8">
+    <div className="min-h-full pb-8">
       {/* Header */}
       <div className="flex items-center gap-3 px-6 pt-6 pb-4">
         <button
           onClick={() => navigate(-1)}
-          className="cursor-pointer rounded-xl bg-surface p-2.5 text-muted hover:text-text transition-colors"
+          className="cursor-pointer rounded-xl glass p-2.5 text-muted hover:text-text transition-all duration-200"
         >
           <ArrowLeft className="h-5 w-5" />
         </button>
@@ -148,9 +148,9 @@ export default function WorkoutDetailPage() {
 
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted mb-3">
           <span>{formatDate(workout.date)}</span>
-          <span className="text-surface-light">|</span>
+          <span className="text-white/10">|</span>
           <span>{TIME_SLOT_LABELS[workout.time_slot] ?? workout.time_slot}</span>
-          <span className="text-surface-light">|</span>
+          <span className="text-white/10">|</span>
           <span>{formatDuration(workout.duration_minutes)}</span>
         </div>
 
@@ -173,7 +173,7 @@ export default function WorkoutDetailPage() {
             <span>RPE: <span className="font-medium text-text">{workout.rpe}/10</span></span>
             {workout.actual_duration && (
               <>
-                <span className="text-surface-light">|</span>
+                <span className="text-white/10">|</span>
                 <span>Actual: <span className="font-medium text-text">{workout.actual_duration}min</span></span>
                 {workout.actual_duration !== workout.duration_minutes && (
                   <span className="text-xs">
@@ -228,14 +228,14 @@ export default function WorkoutDetailPage() {
           <div className="flex gap-3">
             <button
               onClick={handleComplete}
-              className="cursor-pointer flex flex-1 items-center justify-center gap-2 rounded-xl bg-success/20 py-3 text-sm font-semibold text-success hover:bg-success/30 transition-colors"
+              className="cursor-pointer flex flex-1 items-center justify-center gap-2 rounded-xl bg-success/15 border border-success/20 py-3 text-sm font-semibold text-success hover:bg-success/25 transition-all duration-200 active:scale-[0.98]"
             >
               <CheckCircle2 className="h-5 w-5" />
               Complete
             </button>
             <button
               onClick={() => setSkipModal(true)}
-              className="cursor-pointer flex flex-1 items-center justify-center gap-2 rounded-xl bg-danger/20 py-3 text-sm font-semibold text-danger hover:bg-danger/30 transition-colors"
+              className="cursor-pointer flex flex-1 items-center justify-center gap-2 rounded-xl bg-danger/15 border border-danger/20 py-3 text-sm font-semibold text-danger hover:bg-danger/25 transition-all duration-200 active:scale-[0.98]"
             >
               <XCircle className="h-5 w-5" />
               Skip
